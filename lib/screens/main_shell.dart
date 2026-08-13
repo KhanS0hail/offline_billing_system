@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/theme_provider.dart';
+import '../providers/company_provider.dart';
 import 'company_profile_screen.dart';
 import 'customers_screen.dart';
 import 'products_screen.dart';
@@ -66,48 +68,74 @@ class _MainShellState extends State<MainShell> {
   }
 
   Widget _buildCompanyHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.store_rounded,
-              color: Theme.of(context).colorScheme.onPrimary,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "My Company",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+    return Consumer<CompanyProvider>(
+      builder: (context, provider, child) {
+        final company = provider.company;
+        final companyName = (company?.name != null && company!.name!.isNotEmpty)
+            ? company.name!
+            : "My Company";
+        final logoBase64 = company?.logoBase64;
+        final hasLogo = logoBase64 != null && logoBase64.isNotEmpty;
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                Text(
-                  "Billing System",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  ),
+                child: hasLogo
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.memory(
+                          base64Decode(logoBase64),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.store_rounded,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            size: 28,
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        Icons.store_rounded,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      companyName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      "Billing System",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
