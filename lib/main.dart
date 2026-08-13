@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'database/database_helper.dart';
 import 'theme/theme_provider.dart';
+import 'providers/company_provider.dart';
+import 'providers/customer_provider.dart';
+import 'providers/product_provider.dart';
 import 'screens/main_shell.dart';
 
 void main() async {
@@ -14,6 +17,9 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => CompanyProvider()),
+        ChangeNotifierProvider(create: (_) => CustomerProvider()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
       ],
       child: const BillingApp(),
     ),

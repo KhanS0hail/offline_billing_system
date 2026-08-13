@@ -1,0 +1,55 @@
+import 'package:flutter/material.dart';
+import '../database/database_helper.dart';
+import '../models/customer.dart';
+
+class CustomerProvider extends ChangeNotifier {
+  List<Customer> _customers = [];
+  bool _isLoading = false;
+  String _searchQuery = '';
+
+  List<Customer> get customers {
+    if (_searchQuery.isEmpty) return _customers;
+    return _customers.where((customer) {
+      final name = customer.name?.toLowerCase() ?? '';
+      final phone = customer.phone?.toLowerCase() ?? '';
+      final gstin = customer.gstNumber?.toLowerCase() ?? '';
+      final query = _searchQuery.toLowerCase();
+      return name.contains(query) || phone.contains(query) || gstin.contains(query);
+    }).toList();
+  }
+
+  bool get isLoading => _isLoading;
+  String get searchQuery => _searchQuery;
+
+  CustomerProvider() {
+    loadCustomers();
+  }
+
+  Future<void> loadCustomers() async {
+    _isLoading = true;
+    notifyListeners();
+    _customers = await DatabaseHelper.instance.getCustomers();
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  Future<void> addCustomer(Customer customer) async {
+    await DatabaseHelper.instance.insertCustomer(customer);
+    await loadCustomers();
+  }
+
+  Future<void> updateCustomer(Customer customer) async {
+    await DatabaseHelper.instance.updateCustomer(customer);
+    await loadCustomers();
+  }
+
+  Future<void> deleteCustomer(int id) async {
+    await DatabaseHelper.instance.deleteCustomer(id);
+    await loadCustomers();
+  }
+}

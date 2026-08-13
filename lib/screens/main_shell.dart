@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/theme_provider.dart';
+import 'company_profile_screen.dart';
+import 'customers_screen.dart';
+import 'products_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -16,9 +19,9 @@ class _MainShellState extends State<MainShell> {
   final List<Widget> _screens = [
     const Center(child: Text("Dashboard Screen (Coming Soon)")),
     const Center(child: Text("Invoices Screen (Coming Soon)")),
-    const Center(child: Text("Products & Inventory (Coming Soon)")),
-    const Center(child: Text("Customers (Coming Soon)")),
-    const Center(child: Text("Settings (Coming Soon)")),
+    const ProductsScreen(),
+    const CustomersScreen(),
+    const CompanyProfileScreen(),
   ];
 
   @override
