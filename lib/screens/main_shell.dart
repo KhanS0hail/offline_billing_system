@@ -50,37 +50,89 @@ class _MainShellState extends State<MainShell> {
 
   Widget _buildDrawer(ThemeProvider themeProvider) {
     return Drawer(
-      child: _buildNavigationList(themeProvider),
+      child: SafeArea(
+        child: Column(
+          children: [
+            _buildCompanyHeader(),
+            const Divider(),
+            Expanded(child: _buildNavigationList(themeProvider)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompanyHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.store_rounded,
+              color: Theme.of(context).colorScheme.onPrimary,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "My Company",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                Text(
+                  "Billing System",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSidebar(ThemeProvider themeProvider) {
-    return Container(
-      width: 250,
-      color: Theme.of(context).cardColor,
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          const Text(
-            "Billing System",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 40),
-          Expanded(child: _buildNavigationList(themeProvider)),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Dark Mode"),
-                Switch(
-                  value: themeProvider.isDarkMode,
-                  onChanged: (value) => themeProvider.toggleTheme(value),
-                ),
-              ],
-            ),
-          )
-        ],
+    return SafeArea(
+      child: Container(
+        width: 250,
+        color: Theme.of(context).cardColor,
+        child: Column(
+          children: [
+            _buildCompanyHeader(),
+            const Divider(),
+            Expanded(child: _buildNavigationList(themeProvider)),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Dark Mode"),
+                  Switch(
+                    value: themeProvider.isDarkMode,
+                    onChanged: (value) => themeProvider.toggleTheme(value),
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
