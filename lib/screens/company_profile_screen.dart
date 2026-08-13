@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/company_provider.dart';
 import '../models/company.dart';
@@ -30,6 +32,11 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
 
   late TextEditingController _termsController;
 
+  String? _logoBase64;
+  String? _signatureBase64;
+
+  final ImagePicker _picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +63,9 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     _paymentDurationController = TextEditingController(text: comp?.paymentDurationDays.toString() ?? '15');
 
     _termsController = TextEditingController(text: comp?.termsAndConditions ?? '');
+
+    _logoBase64 = comp?.logoBase64;
+    _signatureBase64 = comp?.signatureBase64;
   }
 
   @override
@@ -75,6 +85,35 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     _paymentDurationController.dispose();
     _termsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage({required bool isLogo}) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64String = base64Encode(bytes);
+        setState(() {
+          if (isLogo) {
+            _logoBase64 = base64String;
+          } else {
+            _signatureBase64 = base64String;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
+    }
   }
 
   void _saveProfile() async {
@@ -97,8 +136,8 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
         upiId: _upiIdController.text.trim(),
         paymentDurationDays: int.tryParse(_paymentDurationController.text.trim()) ?? 15,
         termsAndConditions: _termsController.text.trim(),
-        logoBase64: provider.company?.logoBase64,
-        signatureBase64: provider.company?.signatureBase64,
+        logoBase64: _logoBase64,
+        signatureBase64: _signatureBase64,
       );
 
       await provider.saveCompany(updatedCompany);
@@ -106,7 +145,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Company details saved successfully!'),
+            content: Text('Company details & images saved successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -142,6 +181,18 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                 children: [
                   _buildSectionHeader(Icons.business_rounded, "General Information"),
                   const SizedBox(height: 12),
+                  
+                  // Company Logo Picker Widget
+                  _buildImagePickerCard(
+                    title: 'Company Logo',
+                    subtitle: 'Appears at top of invoices',
+                    base64Data: _logoBase64,
+                    icon: Icons.storefront_rounded,
+                    onPick: () => _pickImage(isLogo: true),
+                    onRemove: () => setState(() => _logoBase64 = null),
+                  ),
+                  const SizedBox(height: 16),
+
                   _buildTextField(_nameController, 'Business / Company Name', Icons.store),
                   const SizedBox(height: 12),
                   _buildTextField(_taglineController, 'Tagline / Slogan', Icons.subtitles),
@@ -192,9 +243,20 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  _buildSectionHeader(Icons.gavel_rounded, "Invoice Terms & Notes"),
+                  _buildSectionHeader(Icons.gavel_rounded, "Invoice Terms & Signature"),
                   const SizedBox(height: 12),
                   _buildTextField(_termsController, 'Terms & Conditions', Icons.note, maxLines: 3),
+                  const SizedBox(height: 16),
+
+                  // Digital Signature / Stamp Picker Widget
+                  _buildImagePickerCard(
+                    title: 'Digital Signature / Stamp',
+                    subtitle: 'Appears at bottom of invoices',
+                    base64Data: _signatureBase64,
+                    icon: Icons.draw_rounded,
+                    onPick: () => _pickImage(isLogo: false),
+                    onRemove: () => setState(() => _signatureBase64 = null),
+                  ),
                   const SizedBox(height: 32),
 
                   SizedBox(
@@ -230,6 +292,89 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildImagePickerCard({
+    required String title,
+    required String subtitle,
+    required String? base64Data,
+    required IconData icon,
+    required VoidCallback onPick,
+    required VoidCallback onRemove,
+  }) {
+    final hasImage = base64Data != null && base64Data.isNotEmpty;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: hasImage
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        base64Decode(base64Data),
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Icon(icon, size: 32),
+                      ),
+                    )
+                  : Icon(icon, size: 32, color: Colors.grey),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: onPick,
+                        icon: const Icon(Icons.upload_file, size: 16),
+                        label: Text(hasImage ? 'Change' : 'Upload'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      if (hasImage) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                          onPressed: onRemove,
+                          tooltip: 'Remove',
+                        ),
+                      ]
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
