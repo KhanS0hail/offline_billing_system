@@ -25,9 +25,10 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       password: 'default_secure_key',
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -134,6 +135,89 @@ class DatabaseHelper {
         FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE CASCADE
       )
     ''');
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Safely add any new columns to company table
+      await _addColumnIfNotExists(db, 'company', 'tagline', 'TEXT');
+      await _addColumnIfNotExists(db, 'company', 'state_code', 'TEXT');
+      await _addColumnIfNotExists(db, 'company', 'bank_name', 'TEXT');
+      await _addColumnIfNotExists(db, 'company', 'account_number', 'TEXT');
+      await _addColumnIfNotExists(db, 'company', 'ifsc_code', 'TEXT');
+      await _addColumnIfNotExists(db, 'company', 'bank_branch', 'TEXT');
+      await _addColumnIfNotExists(db, 'company', 'upi_id', 'TEXT');
+      await _addColumnIfNotExists(db, 'company', 'payment_duration_days', 'INTEGER');
+      await _addColumnIfNotExists(db, 'company', 'signature_base64', 'TEXT');
+      await _addColumnIfNotExists(db, 'company', 'terms_and_conditions', 'TEXT');
+
+      // Safely add new columns to customers table
+      await _addColumnIfNotExists(db, 'customers', 'contact_person', 'TEXT');
+      await _addColumnIfNotExists(db, 'customers', 'state_code', 'TEXT');
+      await _addColumnIfNotExists(db, 'customers', 'opening_balance', 'REAL');
+
+      // Safely add new columns to products table
+      await _addColumnIfNotExists(db, 'products', 'description', 'TEXT');
+
+      // Ensure invoices table is created if missing or altered
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS invoices (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          invoice_type TEXT,
+          invoice_number TEXT,
+          challan_number TEXT,
+          customer_id INTEGER,
+          customer_name TEXT,
+          customer_gstin TEXT,
+          customer_state_code TEXT,
+          customer_address TEXT,
+          date TEXT,
+          due_date TEXT,
+          status TEXT,
+          subtotal REAL,
+          transport_charges REAL,
+          taxable_base REAL,
+          gst_rate REAL,
+          cgst_total REAL,
+          sgst_total REAL,
+          igst_total REAL,
+          total_tax REAL,
+          discount_amount REAL,
+          round_off REAL,
+          grand_total REAL,
+          notes TEXT
+        )
+      ''');
+
+      // Ensure invoice_items table is created if missing or altered
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS invoice_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          invoice_id INTEGER,
+          product_id INTEGER,
+          product_name TEXT,
+          size TEXT,
+          hsn_code TEXT,
+          quantity INTEGER,
+          unit TEXT,
+          price REAL,
+          amount REAL,
+          FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE CASCADE
+        )
+      ''');
+    }
+  }
+
+  static Future<void> _addColumnIfNotExists(Database db, String table, String column, String type) async {
+    try {
+      final info = await db.rawQuery('PRAGMA table_info($table)');
+      final exists = info.any((row) => row['name'] == column);
+      if (!exists) {
+        await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+      }
+    } catch (_) {
+      // Ignored if table doesn't exist yet
+    }
   }
 
   // --- COMPANY CRUD ---
