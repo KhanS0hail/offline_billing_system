@@ -375,6 +375,28 @@ class DatabaseHelper {
     return invoiceId;
   }
 
+  Future<void> updateInvoice(Invoice invoice) async {
+    final db = await instance.database;
+    if (invoice.id == null) return;
+
+    await db.transaction((txn) async {
+      await txn.update(
+        'invoices',
+        invoice.toMap(),
+        where: 'id = ?',
+        whereArgs: [invoice.id],
+      );
+
+      // Replace line items
+      await txn.delete('invoice_items', where: 'invoice_id = ?', whereArgs: [invoice.id]);
+
+      for (var item in invoice.items) {
+        final itemMap = item.copyWith(invoiceId: invoice.id).toMap();
+        await txn.insert('invoice_items', itemMap);
+      }
+    });
+  }
+
   Future<List<Invoice>> getInvoices() async {
     final db = await instance.database;
     final result = await db.query('invoices', orderBy: 'id DESC');

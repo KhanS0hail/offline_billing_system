@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/invoice_provider.dart';
+import '../providers/customer_provider.dart';
 import '../models/invoice.dart';
 import 'create_invoice_screen.dart';
 import 'pdf_preview_screen.dart';
@@ -282,6 +283,18 @@ class InvoicesScreen extends StatelessWidget {
                                             MaterialPageRoute(
                                               builder: (_) => PdfPreviewScreen(invoice: inv),
                                             ),
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, color: Colors.amber),
+                                        tooltip: 'Edit Invoice',
+                                        onPressed: () {
+                                          final customers = Provider.of<CustomerProvider>(context, listen: false).customers;
+                                          provider.prepareEditInvoice(inv, customers);
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => const CreateInvoiceScreen()),
                                           );
                                         },
                                       ),

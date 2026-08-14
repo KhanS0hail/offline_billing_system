@@ -14,6 +14,7 @@ class InvoiceProvider extends ChangeNotifier {
   String _searchQuery = '';
 
   // --- DRAFT INVOICE STATE ---
+  int? _editingInvoiceId; // null if creating new, non-null if editing existing
   String _invoiceType = 'TAX INVOICE'; // 'TAX INVOICE' or 'PROFORMA INVOICE'
   String _nextInvoiceNumber = '';
   String? _challanNumber;
@@ -50,6 +51,8 @@ class InvoiceProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
 
   // Draft Getters
+  int? get editingInvoiceId => _editingInvoiceId;
+  bool get isEditing => _editingInvoiceId != null;
   String get invoiceType => _invoiceType;
   String get nextInvoiceNumber => _nextInvoiceNumber;
   String? get challanNumber => _challanNumber;
@@ -86,14 +89,15 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- DRAFT CREATION METHODS ---
+  // --- DRAFT CREATION / EDIT METHODS ---
   Future<void> prepareNewInvoice() async {
+    _editingInvoiceId = null;
     _invoiceType = 'TAX INVOICE';
     _nextInvoiceNumber = await DatabaseHelper.instance.generateNextInvoiceNumber();
     _challanNumber = null;
     _selectedCustomer = null;
     _invoiceDate = DateTime.now();
-    _dueDate = DateTime.now().add(const Duration(days: 15)); // Default 15 days
+    _dueDate = DateTime.now().add(const Duration(days: 15));
     _draftItems = [];
     _transportCharges = 0.0;
     _gstRate = 18.0;
@@ -101,6 +105,30 @@ class InvoiceProvider extends ChangeNotifier {
     _paymentStatus = 'Unpaid';
     _receivedAmount = 0.0;
     _notes = '';
+    notifyListeners();
+  }
+
+  void prepareEditInvoice(Invoice invoice, List<Customer> customers) {
+    _editingInvoiceId = invoice.id;
+    _invoiceType = invoice.invoiceType;
+    _nextInvoiceNumber = invoice.invoiceNumber;
+    _challanNumber = invoice.challanNumber;
+    
+    // Find matching customer
+    _selectedCustomer = null;
+    if (invoice.customerId != null) {
+      try {
+        _selectedCustomer = customers.firstWhere((c) => c.id == invoice.customerId);
+      } catch (_) {}
+    }
+
+    _draftItems = List.from(invoice.items);
+    _transportCharges = invoice.transportCharges;
+    _gstRate = invoice.gstRate;
+    _discountAmount = invoice.discountAmount;
+    _paymentStatus = invoice.status;
+    _receivedAmount = invoice.receivedAmount;
+    _notes = invoice.notes ?? '';
     notifyListeners();
   }
 
@@ -214,6 +242,7 @@ class InvoiceProvider extends ChangeNotifier {
     final actualBalance = totals.grandTotal - actualReceived;
 
     final invoice = Invoice(
+      id: _editingInvoiceId,
       invoiceType: _invoiceType,
       invoiceNumber: _nextInvoiceNumber,
       challanNumber: (_challanNumber != null && _challanNumber!.trim().isNotEmpty) ? _challanNumber!.trim() : null,
@@ -242,9 +271,15 @@ class InvoiceProvider extends ChangeNotifier {
       items: _draftItems,
     );
 
-    int savedId = await DatabaseHelper.instance.insertInvoice(invoice);
+    int returnId;
+    if (_editingInvoiceId != null) {
+      await DatabaseHelper.instance.updateInvoice(invoice);
+      returnId = _editingInvoiceId!;
+    } else {
+      returnId = await DatabaseHelper.instance.insertInvoice(invoice);
+    }
     await loadInvoices();
-    return savedId;
+    return returnId;
   }
 
   Future<void> updateInvoicePayment(int id, String status, {double? received, double? balance}) async {

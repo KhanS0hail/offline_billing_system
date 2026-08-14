@@ -43,70 +43,129 @@ class PdfInvoiceBuilder {
         margin: const pw.EdgeInsets.all(32),
         build: (pw.Context context) {
           return [
-            // 1. TOP HEADER BLOCK
+            // 1. TOP HEADER BLOCK (MATCHING EXACT USER REFERENCE IMAGE)
             pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                // Left: Company Info & Logo
+                // LEFT SIDE: LOGO + TITLE + ADDRESS BLOCK (65% width)
                 pw.Expanded(
+                  flex: 65,
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      if (logoImage != null)
-                        pw.Container(
-                          height: 50,
-                          width: 120,
-                          margin: const pw.EdgeInsets.only(bottom: 6),
-                          child: pw.Image(logoImage, fit: pw.BoxFit.contain),
-                        ),
-                      pw.Text(
-                        company?.name ?? 'MY COMPANY',
-                        style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
+                      // Logo + Company Title & Subtitle side-by-side
+                      pw.Row(
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          if (logoImage != null)
+                            pw.Container(
+                              height: 55,
+                              width: 80,
+                              margin: const pw.EdgeInsets.only(right: 10),
+                              child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+                            ),
+                          pw.Expanded(
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  company?.name ?? 'Regal Steel Trader',
+                                  style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+                                ),
+                                pw.SizedBox(height: 2),
+                                if (company?.tagline != null && company!.tagline!.isNotEmpty)
+                                  pw.Text(
+                                    company.tagline!,
+                                    style: pw.TextStyle(fontSize: 8, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      if (company?.tagline != null && company!.tagline!.isNotEmpty)
-                        pw.Text(company.tagline!, style: pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700)),
+                      pw.SizedBox(height: 10),
+
+                      // Address, Phone, Email, GSTIN Below Logo & Title
                       if (company?.address != null && company!.address!.isNotEmpty)
-                        pw.Text(company.address!, style: const pw.TextStyle(fontSize: 9)),
-                      if (company?.phone != null && company!.phone!.isNotEmpty)
-                        pw.Text('Phone: ${company.phone}', style: const pw.TextStyle(fontSize: 9)),
-                      if (company?.email != null && company!.email!.isNotEmpty)
-                        pw.Text('Email: ${company.email}', style: const pw.TextStyle(fontSize: 9)),
+                        pw.RichText(
+                          text: pw.TextSpan(
+                            children: [
+                              pw.TextSpan(text: 'Address: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                              pw.TextSpan(text: company.address!, style: const pw.TextStyle(fontSize: 9.5)),
+                            ],
+                          ),
+                        ),
+                      pw.SizedBox(height: 2),
+                      pw.Row(
+                        children: [
+                          if (company?.phone != null && company!.phone!.isNotEmpty)
+                            pw.RichText(
+                              text: pw.TextSpan(
+                                children: [
+                                  pw.TextSpan(text: 'Phone: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                                  pw.TextSpan(text: '${company.phone}', style: const pw.TextStyle(fontSize: 9.5)),
+                                ],
+                              ),
+                            ),
+                          if (company?.phone != null && company!.phone!.isNotEmpty && company?.email != null && company!.email!.isNotEmpty)
+                            pw.Text(' | ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                          if (company?.email != null && company!.email!.isNotEmpty)
+                            pw.RichText(
+                              text: pw.TextSpan(
+                                children: [
+                                  pw.TextSpan(text: 'Email: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                                  pw.TextSpan(text: '${company.email}', style: const pw.TextStyle(fontSize: 9.5)),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 2),
                       if (company?.gstNumber != null && company!.gstNumber!.isNotEmpty)
-                        pw.Text('GSTIN: ${company.gstNumber}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                        pw.RichText(
+                          text: pw.TextSpan(
+                            children: [
+                              pw.TextSpan(text: 'GSTIN: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                              pw.TextSpan(text: company.gstNumber!, style: const pw.TextStyle(fontSize: 9.5)),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
 
-                // Right: Invoice Title & Meta
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                  children: [
-                    pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: pw.BoxDecoration(
-                        color: invoice.invoiceType == 'PROFORMA INVOICE' ? PdfColors.orange800 : PdfColors.blue900,
-                        borderRadius: pw.BorderRadius.circular(4),
+                pw.SizedBox(width: 15),
+
+                // RIGHT SIDE: TAX INVOICE TITLE + META LIST (35% width)
+                pw.Expanded(
+                  flex: 35,
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Align(
+                        alignment: pw.Alignment.topRight,
+                        child: pw.Text(
+                          invoice.invoiceType.toUpperCase(),
+                          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+                        ),
                       ),
-                      child: pw.Text(
-                        invoice.invoiceType.toUpperCase(),
-                        style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 14),
-                      ),
-                    ),
-                    pw.SizedBox(height: 6),
-                    pw.Text('Invoice #: ${invoice.invoiceNumber}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                    if (invoice.challanNumber != null && invoice.challanNumber!.trim().isNotEmpty)
-                      pw.Text('Challan #: ${invoice.challanNumber}', style: const pw.TextStyle(fontSize: 9)),
-                    pw.Text('Date: ${invoice.date}', style: const pw.TextStyle(fontSize: 9)),
-                    if (invoice.dueDate != null && invoice.dueDate!.isNotEmpty)
-                      pw.Text('Payment Due: ${invoice.dueDate}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
-                  ],
+                      pw.SizedBox(height: 14),
+
+                      _metaRow('Invoice No. :', invoice.invoiceNumber),
+                      if (invoice.challanNumber != null && invoice.challanNumber!.trim().isNotEmpty)
+                        _metaRow('Challan No. :', invoice.challanNumber!),
+                      _metaRow('Invoice Date:', invoice.date),
+                      if (invoice.dueDate != null && invoice.dueDate!.isNotEmpty)
+                        _metaRow('Payment Due:', invoice.dueDate!, isBoldValue: true),
+                    ],
+                  ),
                 ),
               ],
             ),
 
-            pw.SizedBox(height: 12),
-            pw.Divider(thickness: 1, color: PdfColors.grey300),
+            pw.SizedBox(height: 10),
+            pw.Divider(thickness: 1, color: PdfColors.grey400),
             pw.SizedBox(height: 8),
 
             // 2. CUSTOMER & BILLING INFO BLOCK
@@ -205,19 +264,19 @@ class PdfInvoiceBuilder {
 
             // 4. CALCULATIONS & PAYMENT DETAILS SPLIT BLOCK
             pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              cross: pw.CrossAxisAlignment.start,
               children: [
                 // Left Side: Amount in Words, Bank Info, Payment Status
                 pw.Expanded(
                   flex: 5,
                   child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    cross: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Container(
                         padding: const pw.EdgeInsets.all(6),
                         decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(4)),
                         child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          cross: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text('AMOUNT IN WORDS:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                             pw.Text(amountInWords, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
@@ -236,7 +295,7 @@ class PdfInvoiceBuilder {
                             borderRadius: pw.BorderRadius.circular(4),
                           ),
                           child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            cross: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Text('BANK & PAYMENT DETAILS:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
                               if (company?.bankName != null && company!.bankName!.isNotEmpty)
@@ -377,6 +436,27 @@ class PdfInvoiceBuilder {
     );
 
     return pdf.save();
+  }
+
+  static pw.Widget _metaRow(String label, String value, {bool isBoldValue = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.end,
+        children: [
+          pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+          pw.SizedBox(width: 4),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              fontSize: 9.5,
+              fontWeight: isBoldValue ? pw.FontWeight.bold : pw.FontWeight.normal,
+              color: isBoldValue ? PdfColors.red800 : PdfColors.black,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   static pw.Widget _cellHeader(String text) {
