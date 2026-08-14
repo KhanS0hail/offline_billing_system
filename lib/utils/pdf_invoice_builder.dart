@@ -264,19 +264,19 @@ class PdfInvoiceBuilder {
 
             // 4. CALCULATIONS & PAYMENT DETAILS SPLIT BLOCK
             pw.Row(
-              cross: pw.CrossAxisAlignment.start,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 // Left Side: Amount in Words, Bank Info, Payment Status
                 pw.Expanded(
                   flex: 5,
                   child: pw.Column(
-                    cross: pw.CrossAxisAlignment.start,
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Container(
                         padding: const pw.EdgeInsets.all(6),
                         decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(4)),
                         child: pw.Column(
-                          cross: pw.CrossAxisAlignment.start,
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text('AMOUNT IN WORDS:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                             pw.Text(amountInWords, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
@@ -295,7 +295,7 @@ class PdfInvoiceBuilder {
                             borderRadius: pw.BorderRadius.circular(4),
                           ),
                           child: pw.Column(
-                            cross: pw.CrossAxisAlignment.start,
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Text('BANK & PAYMENT DETAILS:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
                               if (company?.bankName != null && company!.bankName!.isNotEmpty)
