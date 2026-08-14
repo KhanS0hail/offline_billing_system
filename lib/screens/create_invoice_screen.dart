@@ -8,6 +8,8 @@ import '../models/customer.dart';
 import '../models/product.dart';
 import '../models/invoice_item.dart';
 import '../utils/number_to_words.dart';
+import '../database/database_helper.dart';
+import 'pdf_preview_screen.dart';
 
 class CreateInvoiceScreen extends StatefulWidget {
   const CreateInvoiceScreen({super.key});
@@ -684,16 +686,26 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                     onPressed: invProvider.draftItems.isEmpty
                         ? null
                         : () async {
-                            await invProvider.saveDraftInvoice(company);
+                            int savedId = await invProvider.saveDraftInvoice(company);
+                            final savedInvoice = await DatabaseHelper.instance.getInvoiceById(savedId);
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
                               );
-                              Navigator.pop(context);
+                              if (savedInvoice != null) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PdfPreviewScreen(invoice: savedInvoice),
+                                  ),
+                                );
+                              } else {
+                                Navigator.pop(context);
+                              }
                             }
                           },
                     icon: const Icon(Icons.check_circle),
-                    label: const Text('Save & Create Invoice', style: TextStyle(fontSize: 16)),
+                    label: const Text('Save & Preview PDF Invoice', style: TextStyle(fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 40),

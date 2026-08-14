@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/invoice_provider.dart';
 import '../models/invoice.dart';
 import 'create_invoice_screen.dart';
+import 'pdf_preview_screen.dart';
 
 class InvoicesScreen extends StatelessWidget {
   const InvoicesScreen({super.key});
@@ -235,6 +236,14 @@ class InvoicesScreen extends StatelessWidget {
                                 margin: const EdgeInsets.only(bottom: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 child: ListTile(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => PdfPreviewScreen(invoice: inv),
+                                      ),
+                                    );
+                                  },
                                   leading: CircleAvatar(
                                     backgroundColor: statusColor.withOpacity(0.2),
                                     child: Icon(statusIcon, color: statusColor),
@@ -264,6 +273,18 @@ class InvoicesScreen extends StatelessWidget {
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.picture_as_pdf, color: Colors.blue),
+                                        tooltip: 'View / Print PDF',
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => PdfPreviewScreen(invoice: inv),
+                                            ),
+                                          );
+                                        },
+                                      ),
                                       IconButton(
                                         icon: Icon(Icons.edit_note, color: statusColor),
                                         tooltip: 'Update Payment Status',
