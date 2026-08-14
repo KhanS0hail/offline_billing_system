@@ -35,21 +35,30 @@ class NumberToWords {
     if (n < 20) return _units[n];
 
     if (n < 100) {
-      return "${_tens[n ~/ 10]}${n % 10 != 0 ? " ${...}" : ""}".replaceAll("{...}", _units[n % 10]);
+      final unitPart = n % 10 != 0 ? " ${_units[n % 10]}" : "";
+      return "${_tens[n ~/ 10]}$unitPart";
     }
 
     if (n < 1000) {
-      return "${_units[n ~/ 100]} Hundred${n % 100 != 0 ? " ${_convertNumber(n % 100)}" : ""}";
+      final rem = n % 100;
+      final remPart = rem != 0 ? " ${_convertNumber(rem)}" : "";
+      return "${_units[n ~/ 100]} Hundred$remPart";
     }
 
     if (n < 100000) {
-      return "${_convertNumber(n ~/ 1000)} Thousand${n % 1000 != 0 ? " ${_convertNumber(n % 1000)}" : ""}";
+      final rem = n % 1000;
+      final remPart = rem != 0 ? " ${_convertNumber(rem)}" : "";
+      return "${_convertNumber(n ~/ 1000)} Thousand$remPart";
     }
 
     if (n < 10000000) {
-      return "${_convertNumber(n ~/ 100000)} Lakh${n % 100000 != 0 ? " ${_convertNumber(n % 100000)}" : ""}";
+      final rem = n % 100000;
+      final remPart = rem != 0 ? " ${_convertNumber(rem)}" : "";
+      return "${_convertNumber(n ~/ 100000)} Lakh$remPart";
     }
 
-    return "${_convertNumber(n ~/ 10000000)} Crore${n % 10000000 != 0 ? " ${_convertNumber(n % 10000000)}" : ""}";
+    final rem = n % 10000000;
+    final remPart = rem != 0 ? " ${_convertNumber(rem)}" : "";
+    return "${_convertNumber(n ~/ 10000000)} Crore$remPart";
   }
 }
