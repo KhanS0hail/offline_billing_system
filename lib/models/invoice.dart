@@ -24,6 +24,8 @@ class Invoice {
   final double discountAmount;
   final double roundOff;
   final double grandTotal;
+  final double receivedAmount; // Amount received so far
+  final double balanceAmount;  // Remaining unpaid balance
   final String? notes;
   final List<InvoiceItem> items;
 
@@ -51,9 +53,12 @@ class Invoice {
     this.discountAmount = 0.0,
     this.roundOff = 0.0,
     required this.grandTotal,
+    double? receivedAmount,
+    double? balanceAmount,
     this.notes,
     this.items = const [],
-  });
+  })  : receivedAmount = receivedAmount ?? (status == 'Paid' ? grandTotal : 0.0),
+        balanceAmount = balanceAmount ?? (status == 'Paid' ? 0.0 : (grandTotal - (receivedAmount ?? 0.0)));
 
   Map<String, dynamic> toMap() {
     return {
@@ -80,11 +85,18 @@ class Invoice {
       'discount_amount': discountAmount,
       'round_off': roundOff,
       'grand_total': grandTotal,
+      'received_amount': receivedAmount,
+      'balance_amount': balanceAmount,
       'notes': notes,
     };
   }
 
   factory Invoice.fromMap(Map<String, dynamic> map, {List<InvoiceItem> items = const []}) {
+    final status = map['status'] ?? 'Unpaid';
+    final grandTotal = (map['grand_total'] as num?)?.toDouble() ?? 0.0;
+    final received = (map['received_amount'] as num?)?.toDouble() ?? (status == 'Paid' ? grandTotal : 0.0);
+    final balance = (map['balance_amount'] as num?)?.toDouble() ?? (grandTotal - received);
+
     return Invoice(
       id: map['id'] as int?,
       invoiceType: map['invoice_type'] ?? 'TAX INVOICE',
@@ -97,7 +109,7 @@ class Invoice {
       customerAddress: map['customer_address'],
       date: map['date'] ?? '',
       dueDate: map['due_date'],
-      status: map['status'] ?? 'Unpaid',
+      status: status,
       subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
       transportCharges: (map['transport_charges'] as num?)?.toDouble() ?? 0.0,
       taxableBase: (map['taxable_base'] as num?)?.toDouble() ?? 0.0,
@@ -108,7 +120,9 @@ class Invoice {
       totalTax: (map['total_tax'] as num?)?.toDouble() ?? 0.0,
       discountAmount: (map['discount_amount'] as num?)?.toDouble() ?? 0.0,
       roundOff: (map['round_off'] as num?)?.toDouble() ?? 0.0,
-      grandTotal: (map['grand_total'] as num?)?.toDouble() ?? 0.0,
+      grandTotal: grandTotal,
+      receivedAmount: received,
+      balanceAmount: balance,
       notes: map['notes'],
       items: items,
     );

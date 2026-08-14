@@ -4,6 +4,7 @@ class InvoiceItem {
   final int? productId;
   final String productName;
   final String? size;
+  final String? pcsCount; // e.g. "10 Pcs", "2 BDL", "5 Nag"
   final String? hsnCode;
   final int quantity;
   final String unit;
@@ -16,6 +17,7 @@ class InvoiceItem {
     this.productId,
     required this.productName,
     this.size,
+    this.pcsCount,
     this.hsnCode,
     this.quantity = 1,
     this.unit = 'Pcs',
@@ -30,6 +32,7 @@ class InvoiceItem {
       'product_id': productId,
       'product_name': productName,
       'size': size,
+      'pcs_count': pcsCount,
       'hsn_code': hsnCode,
       'quantity': quantity,
       'unit': unit,
@@ -45,6 +48,7 @@ class InvoiceItem {
       productId: map['product_id'] as int?,
       productName: map['product_name'] ?? '',
       size: map['size'],
+      pcsCount: map['pcs_count'],
       hsnCode: map['hsn_code'],
       quantity: (map['quantity'] as num?)?.toInt() ?? 1,
       unit: map['unit'] ?? 'Pcs',
@@ -59,6 +63,7 @@ class InvoiceItem {
     int? productId,
     String? productName,
     String? size,
+    String? pcsCount,
     String? hsnCode,
     int? quantity,
     String? unit,
@@ -71,6 +76,7 @@ class InvoiceItem {
       productId: productId ?? this.productId,
       productName: productName ?? this.productName,
       size: size ?? this.size,
+      pcsCount: pcsCount ?? this.pcsCount,
       hsnCode: hsnCode ?? this.hsnCode,
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,

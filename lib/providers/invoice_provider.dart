@@ -10,7 +10,7 @@ import '../utils/gst_calculator.dart';
 class InvoiceProvider extends ChangeNotifier {
   List<Invoice> _invoices = [];
   bool _isLoading = false;
-  String _filterStatus = 'All'; // 'All', 'Paid', 'Unpaid'
+  String _filterStatus = 'All'; // 'All', 'Paid', 'Unpaid', 'Partially Paid'
   String _searchQuery = '';
 
   // --- DRAFT INVOICE STATE ---
@@ -24,6 +24,8 @@ class InvoiceProvider extends ChangeNotifier {
   double _transportCharges = 0.0;
   double _gstRate = 18.0;
   double _discountAmount = 0.0;
+  String _paymentStatus = 'Unpaid'; // 'Unpaid', 'Paid', 'Partially Paid'
+  double _receivedAmount = 0.0;
   String _notes = '';
 
   // Getters
@@ -58,6 +60,8 @@ class InvoiceProvider extends ChangeNotifier {
   double get transportCharges => _transportCharges;
   double get gstRate => _gstRate;
   double get discountAmount => _discountAmount;
+  String get paymentStatus => _paymentStatus;
+  double get receivedAmount => _receivedAmount;
   String get notes => _notes;
 
   InvoiceProvider() {
@@ -94,6 +98,8 @@ class InvoiceProvider extends ChangeNotifier {
     _transportCharges = 0.0;
     _gstRate = 18.0;
     _discountAmount = 0.0;
+    _paymentStatus = 'Unpaid';
+    _receivedAmount = 0.0;
     _notes = '';
     notifyListeners();
   }
@@ -115,7 +121,6 @@ class InvoiceProvider extends ChangeNotifier {
 
   void setInvoiceDate(DateTime date) {
     _invoiceDate = date;
-    // Keep default 15 days due date
     _dueDate = date.add(const Duration(days: 15));
     notifyListeners();
   }
@@ -140,6 +145,16 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPaymentStatus(String status) {
+    _paymentStatus = status;
+    notifyListeners();
+  }
+
+  void setReceivedAmount(double amount) {
+    _receivedAmount = amount;
+    notifyListeners();
+  }
+
   void setNotes(String n) {
     _notes = n;
     notifyListeners();
@@ -150,6 +165,7 @@ class InvoiceProvider extends ChangeNotifier {
       productId: product.id,
       productName: product.name ?? 'Item',
       size: '',
+      pcsCount: '',
       hsnCode: product.hsnCode,
       quantity: 1,
       unit: product.unit ?? 'Pcs',
@@ -189,6 +205,14 @@ class InvoiceProvider extends ChangeNotifier {
     final formattedDate = "${_invoiceDate.day.toString().padLeft(2, '0')}-${_monthName(_invoiceDate.month)}-${_invoiceDate.year}";
     final formattedDueDate = "${_dueDate.day.toString().padLeft(2, '0')}-${_monthName(_dueDate.month)}-${_dueDate.year}";
 
+    double actualReceived = 0.0;
+    if (_paymentStatus == 'Paid') {
+      actualReceived = totals.grandTotal;
+    } else if (_paymentStatus == 'Partially Paid') {
+      actualReceived = _receivedAmount;
+    }
+    final actualBalance = totals.grandTotal - actualReceived;
+
     final invoice = Invoice(
       invoiceType: _invoiceType,
       invoiceNumber: _nextInvoiceNumber,
@@ -200,7 +224,7 @@ class InvoiceProvider extends ChangeNotifier {
       customerAddress: _selectedCustomer?.address,
       date: formattedDate,
       dueDate: formattedDueDate,
-      status: 'Unpaid',
+      status: _paymentStatus,
       subtotal: totals.subtotal,
       transportCharges: totals.transportCharges,
       taxableBase: totals.taxableBase,
@@ -212,6 +236,8 @@ class InvoiceProvider extends ChangeNotifier {
       discountAmount: totals.discountAmount,
       roundOff: totals.roundOff,
       grandTotal: totals.grandTotal,
+      receivedAmount: actualReceived,
+      balanceAmount: actualBalance,
       notes: (_notes.trim().isNotEmpty) ? _notes.trim() : null,
       items: _draftItems,
     );
@@ -221,8 +247,8 @@ class InvoiceProvider extends ChangeNotifier {
     return savedId;
   }
 
-  Future<void> updateInvoiceStatus(int id, String status) async {
-    await DatabaseHelper.instance.updateInvoiceStatus(id, status);
+  Future<void> updateInvoicePayment(int id, String status, {double? received, double? balance}) async {
+    await DatabaseHelper.instance.updateInvoiceStatus(id, status, receivedAmount: received, balanceAmount: balance);
     await loadInvoices();
   }
 

@@ -30,6 +30,84 @@ class InvoicesScreen extends StatelessWidget {
     );
   }
 
+  void _showUpdatePaymentDialog(BuildContext context, Invoice invoice) {
+    String selectedStatus = invoice.status;
+    final receivedController = TextEditingController(text: invoice.receivedAmount.toString());
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Update Payment: ${invoice.invoiceNumber}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Total Bill: ₹${invoice.grandTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  const Text('Payment Status:'),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedStatus,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    items: ['Unpaid', 'Partially Paid', 'Paid']
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {
+                          selectedStatus = val;
+                          if (val == 'Paid') {
+                            receivedController.text = invoice.grandTotal.toString();
+                          } else if (val == 'Unpaid') {
+                            receivedController.text = '0.0';
+                          }
+                        });
+                      }
+                    },
+                  ),
+                  if (selectedStatus == 'Partially Paid') ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: receivedController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Received Amount (₹)', border: OutlineInputBorder()),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () async {
+                    double rec = double.tryParse(receivedController.text.trim()) ?? 0.0;
+                    if (selectedStatus == 'Paid') rec = invoice.grandTotal;
+                    if (selectedStatus == 'Unpaid') rec = 0.0;
+                    double bal = invoice.grandTotal - rec;
+                    if (bal < 0) bal = 0.0;
+
+                    if (invoice.id != null) {
+                      await Provider.of<InvoiceProvider>(context, listen: false).updateInvoicePayment(
+                        invoice.id!,
+                        selectedStatus,
+                        received: rec,
+                        balance: bal,
+                      );
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                  child: const Text('Update Payment'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,11 +124,8 @@ class InvoicesScreen extends StatelessWidget {
 
           for (var inv in provider.invoices) {
             totalSales += inv.grandTotal;
-            if (inv.status == 'Paid') {
-              paidAmount += inv.grandTotal;
-            } else {
-              unpaidAmount += inv.grandTotal;
-            }
+            paidAmount += inv.receivedAmount;
+            unpaidAmount += inv.balanceAmount;
           }
 
           return Column(
@@ -73,7 +148,7 @@ class InvoicesScreen extends StatelessWidget {
                     Expanded(
                       child: _buildStatCard(
                         context,
-                        'Paid',
+                        'Received',
                         '₹${paidAmount.toStringAsFixed(2)}',
                         Colors.green.shade700,
                         Icons.check_circle_outline,
@@ -83,7 +158,7 @@ class InvoicesScreen extends StatelessWidget {
                     Expanded(
                       child: _buildStatCard(
                         context,
-                        'Unpaid',
+                        'Outstanding',
                         '₹${unpaidAmount.toStringAsFixed(2)}',
                         Colors.red.shade700,
                         Icons.pending_actions,
@@ -112,6 +187,7 @@ class InvoicesScreen extends StatelessWidget {
                       segments: const [
                         ButtonSegment(value: 'All', label: Text('All')),
                         ButtonSegment(value: 'Unpaid', label: Text('Unpaid')),
+                        ButtonSegment(value: 'Partially Paid', label: Text('Partial')),
                         ButtonSegment(value: 'Paid', label: Text('Paid')),
                       ],
                       selected: {provider.filterStatus},
@@ -143,17 +219,25 @@ class InvoicesScreen extends StatelessWidget {
                             itemBuilder: (context, index) {
                               final inv = invoices[index];
                               final isPaid = inv.status == 'Paid';
+                              final isPartial = inv.status == 'Partially Paid';
+
+                              Color statusColor = Colors.red;
+                              IconData statusIcon = Icons.pending;
+                              if (isPaid) {
+                                statusColor = Colors.green;
+                                statusIcon = Icons.check_circle;
+                              } else if (isPartial) {
+                                statusColor = Colors.orange;
+                                statusIcon = Icons.rule;
+                              }
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 child: ListTile(
                                   leading: CircleAvatar(
-                                    backgroundColor: isPaid ? Colors.green.shade100 : Colors.red.shade100,
-                                    child: Icon(
-                                      isPaid ? Icons.check_circle : Icons.pending,
-                                      color: isPaid ? Colors.green.shade800 : Colors.red.shade800,
-                                    ),
+                                    backgroundColor: statusColor.withOpacity(0.2),
+                                    child: Icon(statusIcon, color: statusColor),
                                   ),
                                   title: Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -170,24 +254,20 @@ class InvoicesScreen extends StatelessWidget {
                                     children: [
                                       Text('Customer: ${inv.customerName ?? "Cash Customer"}'),
                                       Text('Date: ${inv.date}${inv.dueDate != null ? " | Due: ${inv.dueDate}" : ""}'),
-                                      if (inv.challanNumber != null && inv.challanNumber!.isNotEmpty)
-                                        Text('Challan #: ${inv.challanNumber}'),
+                                      if (isPartial)
+                                        Text(
+                                          'Received: ₹${inv.receivedAmount.toStringAsFixed(2)} | Due: ₹${inv.balanceAmount.toStringAsFixed(2)}',
+                                          style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                                        ),
                                     ],
                                   ),
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
-                                        icon: Icon(
-                                          isPaid ? Icons.undo : Icons.task_alt,
-                                          color: isPaid ? Colors.orange : Colors.green,
-                                        ),
-                                        tooltip: isPaid ? 'Mark as Unpaid' : 'Mark as Paid',
-                                        onPressed: () async {
-                                          if (inv.id != null) {
-                                            await provider.updateInvoiceStatus(inv.id!, isPaid ? 'Unpaid' : 'Paid');
-                                          }
-                                        },
+                                        icon: Icon(Icons.edit_note, color: statusColor),
+                                        tooltip: 'Update Payment Status',
+                                        onPressed: () => _showUpdatePaymentDialog(context, inv),
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.delete, color: Colors.red),

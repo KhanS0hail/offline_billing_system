@@ -115,6 +115,8 @@ class DatabaseHelper {
         discount_amount $realNull,
         round_off $realNull,
         grand_total $realNull,
+        received_amount $realNull,
+        balance_amount $realNull,
         notes $textNull
       )
     ''');
@@ -127,6 +129,7 @@ class DatabaseHelper {
         product_id $intNull,
         product_name $textNull,
         size $textNull,
+        pcs_count $textNull,
         hsn_code $textNull,
         quantity $intNull,
         unit $textNull,
@@ -159,7 +162,7 @@ class DatabaseHelper {
       // Product columns
       await _addColumnIfNotExists(db, 'products', 'description', 'TEXT');
 
-      // Invoices columns (safely add all missing columns to existing invoices table)
+      // Invoices columns
       await _addColumnIfNotExists(db, 'invoices', 'invoice_type', 'TEXT');
       await _addColumnIfNotExists(db, 'invoices', 'challan_number', 'TEXT');
       await _addColumnIfNotExists(db, 'invoices', 'customer_name', 'TEXT');
@@ -177,11 +180,14 @@ class DatabaseHelper {
       await _addColumnIfNotExists(db, 'invoices', 'discount_amount', 'REAL');
       await _addColumnIfNotExists(db, 'invoices', 'round_off', 'REAL');
       await _addColumnIfNotExists(db, 'invoices', 'grand_total', 'REAL');
+      await _addColumnIfNotExists(db, 'invoices', 'received_amount', 'REAL');
+      await _addColumnIfNotExists(db, 'invoices', 'balance_amount', 'REAL');
       await _addColumnIfNotExists(db, 'invoices', 'notes', 'TEXT');
 
-      // Invoice Items columns (safely add all missing columns to existing invoice_items table)
+      // Invoice Items columns
       await _addColumnIfNotExists(db, 'invoice_items', 'product_name', 'TEXT');
       await _addColumnIfNotExists(db, 'invoice_items', 'size', 'TEXT');
+      await _addColumnIfNotExists(db, 'invoice_items', 'pcs_count', 'TEXT');
       await _addColumnIfNotExists(db, 'invoice_items', 'hsn_code', 'TEXT');
       await _addColumnIfNotExists(db, 'invoice_items', 'unit', 'TEXT');
       await _addColumnIfNotExists(db, 'invoice_items', 'amount', 'REAL');
@@ -196,7 +202,7 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
       }
     } catch (_) {
-      // Ignored if table doesn't exist yet
+      // Ignored
     }
   }
 
@@ -342,11 +348,15 @@ class DatabaseHelper {
     return Invoice.fromMap(result.first, items: items);
   }
 
-  Future<int> updateInvoiceStatus(int id, String status) async {
+  Future<int> updateInvoiceStatus(int id, String status, {double? receivedAmount, double? balanceAmount}) async {
     final db = await instance.database;
+    Map<String, dynamic> updateData = {'status': status};
+    if (receivedAmount != null) updateData['received_amount'] = receivedAmount;
+    if (balanceAmount != null) updateData['balance_amount'] = balanceAmount;
+
     return await db.update(
       'invoices',
-      {'status': status},
+      updateData,
       where: 'id = ?',
       whereArgs: [id],
     );

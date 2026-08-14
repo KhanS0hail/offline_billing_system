@@ -20,6 +20,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   late TextEditingController _challanController;
   late TextEditingController _transportController;
   late TextEditingController _discountController;
+  late TextEditingController _receivedController;
   late TextEditingController _notesController;
 
   @override
@@ -29,6 +30,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     _challanController = TextEditingController(text: invProvider.challanNumber ?? '');
     _transportController = TextEditingController(text: invProvider.transportCharges == 0 ? '' : invProvider.transportCharges.toString());
     _discountController = TextEditingController(text: invProvider.discountAmount == 0 ? '' : invProvider.discountAmount.toString());
+    _receivedController = TextEditingController(text: invProvider.receivedAmount == 0 ? '' : invProvider.receivedAmount.toString());
     _notesController = TextEditingController(text: invProvider.notes);
   }
 
@@ -37,8 +39,94 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     _challanController.dispose();
     _transportController.dispose();
     _discountController.dispose();
+    _receivedController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  void _showQuickAddCustomerDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final addressController = TextEditingController();
+    final gstController = TextEditingController();
+    final stateCodeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Add New Customer'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Customer / Business Name', prefixIcon: Icon(Icons.person)),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Phone Number', prefixIcon: Icon(Icons.phone)),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: addressController,
+                  decoration: const InputDecoration(labelText: 'Address', prefixIcon: Icon(Icons.location_on)),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: gstController,
+                        decoration: const InputDecoration(labelText: 'GSTIN', prefixIcon: Icon(Icons.verified)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: stateCodeController,
+                        decoration: const InputDecoration(labelText: 'State Code', prefixIcon: Icon(Icons.map)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final newCust = Customer(
+                  name: nameController.text.trim(),
+                  phone: phoneController.text.trim(),
+                  address: addressController.text.trim(),
+                  gstNumber: gstController.text.trim(),
+                  stateCode: stateCodeController.text.trim(),
+                );
+
+                final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+                await custProvider.addCustomer(newCust);
+
+                // Auto-select the newly added customer
+                if (custProvider.customers.isNotEmpty) {
+                  final added = custProvider.customers.last;
+                  if (context.mounted) {
+                    Provider.of<InvoiceProvider>(context, listen: false).setSelectedCustomer(added);
+                  }
+                }
+
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Add & Select'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showProductPickerDialog(BuildContext context) {
@@ -99,6 +187,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   void _showEditItemDialog(BuildContext context, int index, InvoiceItem item) {
     final nameController = TextEditingController(text: item.productName);
     final sizeController = TextEditingController(text: item.size ?? '');
+    final pcsCountController = TextEditingController(text: item.pcsCount ?? '');
     final qtyController = TextEditingController(text: item.quantity.toString());
     final priceController = TextEditingController(text: item.price.toString());
     String selectedUnit = item.unit;
@@ -129,15 +218,9 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedUnit,
-                            decoration: const InputDecoration(labelText: 'Unit'),
-                            items: ['Pcs', 'Kg', 'Gm', 'Mtr', 'Ltr', 'Box', 'Set', 'Pack']
-                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) setDialogState(() => selectedUnit = v);
-                            },
+                          child: TextField(
+                            controller: pcsCountController,
+                            decoration: const InputDecoration(labelText: 'Pcs/Nag/BDL (e.g. 10 Pcs, 2 BDL)'),
                           ),
                         ),
                       ],
@@ -154,13 +237,24 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: TextField(
-                            controller: priceController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(labelText: 'Rate / Price (₹)'),
+                          child: DropdownButtonFormField<String>(
+                            value: ['Pcs', 'BDL', 'Kg', 'Gm', 'Mtr', 'Ltr', 'Box', 'Set', 'Pack'].contains(selectedUnit) ? selectedUnit : 'Pcs',
+                            decoration: const InputDecoration(labelText: 'Unit'),
+                            items: ['Pcs', 'BDL', 'Kg', 'Gm', 'Mtr', 'Ltr', 'Box', 'Set', 'Pack']
+                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) setDialogState(() => selectedUnit = v);
+                            },
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: priceController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Rate / Price (₹)'),
                     ),
                   ],
                 ),
@@ -174,6 +268,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                     final updated = item.copyWith(
                       productName: nameController.text.trim(),
                       size: sizeController.text.trim(),
+                      pcsCount: pcsCountController.text.trim(),
                       quantity: qty,
                       price: price,
                       unit: selectedUnit,
@@ -302,7 +397,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 3. CUSTOMER SELECTOR CARD
+                // 3. CUSTOMER SELECTOR CARD (WITH QUICK ADD BUTTON)
                 Card(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: Padding(
@@ -314,13 +409,23 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(Icons.person, color: Theme.of(context).colorScheme.primary),
-                                const SizedBox(width: 8),
-                                Text('Billed To Customer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+                                Row(
+                                  children: [
+                                    Icon(Icons.person, color: Theme.of(context).colorScheme.primary),
+                                    const SizedBox(width: 8),
+                                    Text('Billed To Customer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+                                  ],
+                                ),
+                                TextButton.icon(
+                                  onPressed: () => _showQuickAddCustomerDialog(context),
+                                  icon: const Icon(Icons.person_add_alt_1, size: 18),
+                                  label: const Text('+ Add New'),
+                                ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             DropdownButtonFormField<Customer>(
                               value: invProvider.selectedCustomer,
                               decoration: const InputDecoration(labelText: 'Select Customer', border: OutlineInputBorder()),
@@ -401,11 +506,14 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         itemCount: invProvider.draftItems.length,
                         itemBuilder: (context, index) {
                           final item = invProvider.draftItems[index];
+                          final sizeText = (item.size != null && item.size!.isNotEmpty) ? " | Size: ${item.size}" : "";
+                          final pcsText = (item.pcsCount != null && item.pcsCount!.isNotEmpty) ? " | Pcs/Bdl: ${item.pcsCount}" : "";
+
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
                               title: Text(
-                                '${index + 1}. ${item.productName}${item.size != null && item.size!.isNotEmpty ? " (Size: ${item.size})" : ""}',
+                                '${index + 1}. ${item.productName}$sizeText$pcsText',
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
@@ -430,7 +538,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                       ),
                 const SizedBox(height: 24),
 
-                // 5. CALCULATIONS & TOTALS CARD
+                // 5. CALCULATIONS & PAYMENT STATUS CARD
                 Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -439,7 +547,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Calculations & Totals', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+                        Text('Calculations & Payment Status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
                         const SizedBox(height: 12),
                         _buildSummaryRow('Subtotal', '₹${totals.subtotal.toStringAsFixed(2)}'),
                         const SizedBox(height: 8),
@@ -499,6 +607,8 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         const SizedBox(height: 8),
                         _buildSummaryRow('Round Off', '${totals.roundOff >= 0 ? "+" : ""}₹${totals.roundOff.toStringAsFixed(2)}'),
                         const Divider(height: 20),
+
+                        // GRAND TOTAL BANNER
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -518,6 +628,48 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                           'Amount in Words: $amountInWords',
                           style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Theme.of(context).colorScheme.primary),
                         ),
+                        const Divider(height: 24),
+
+                        // PAYMENT STATUS SELECTOR (Unpaid, Paid, Partially Paid)
+                        Text('Payment Status:', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+                        const SizedBox(height: 8),
+                        SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment(value: 'Unpaid', label: Text('Unpaid'), icon: Icon(Icons.pending, color: Colors.red)),
+                            ButtonSegment(value: 'Partially Paid', label: Text('Partially Paid'), icon: Icon(Icons.rule, color: Colors.orange)),
+                            ButtonSegment(value: 'Paid', label: Text('Paid'), icon: Icon(Icons.check_circle, color: Colors.green)),
+                          ],
+                          selected: {invProvider.paymentStatus},
+                          onSelectionChanged: (s) => invProvider.setPaymentStatus(s.first),
+                        ),
+                        if (invProvider.paymentStatus == 'Partially Paid') ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Expanded(child: Text('Received Amount (₹):', style: TextStyle(fontWeight: FontWeight.bold))),
+                              SizedBox(
+                                width: 140,
+                                child: TextField(
+                                  controller: _receivedController,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), prefixText: '₹'),
+                                  onChanged: (v) => invProvider.setReceivedAmount(double.tryParse(v) ?? 0.0),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Remaining Balance Due:'),
+                              Text(
+                                '₹${(totals.grandTotal - invProvider.receivedAmount).toStringAsFixed(2)}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
