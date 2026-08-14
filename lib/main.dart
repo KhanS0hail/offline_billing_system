@@ -5,6 +5,7 @@ import 'theme/theme_provider.dart';
 import 'providers/company_provider.dart';
 import 'providers/customer_provider.dart';
 import 'providers/product_provider.dart';
+import 'providers/invoice_provider.dart';
 import 'screens/main_shell.dart';
 
 void main() async {
@@ -20,6 +21,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CompanyProvider()),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
+        ChangeNotifierProvider(create: (_) => InvoiceProvider()),
       ],
       child: const BillingApp(),
     ),

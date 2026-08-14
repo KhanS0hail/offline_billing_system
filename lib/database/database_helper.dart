@@ -4,6 +4,8 @@ import 'package:path_provider/path_provider.dart';
 import '../models/company.dart';
 import '../models/customer.dart';
 import '../models/product.dart';
+import '../models/invoice.dart';
+import '../models/invoice_item.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -90,14 +92,29 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE invoices (
         id $idType,
+        invoice_type $textNull,
         invoice_number $textNull,
+        challan_number $textNull,
         customer_id $intNull,
+        customer_name $textNull,
+        customer_gstin $textNull,
+        customer_state_code $textNull,
+        customer_address $textNull,
         date $textNull,
+        due_date $textNull,
+        status $textNull,
         subtotal $realNull,
-        tax_amount $realNull,
-        total_amount $realNull,
-        is_paid $intNull,
-        FOREIGN KEY (customer_id) REFERENCES customers (id)
+        transport_charges $realNull,
+        taxable_base $realNull,
+        gst_rate $realNull,
+        cgst_total $realNull,
+        sgst_total $realNull,
+        igst_total $realNull,
+        total_tax $realNull,
+        discount_amount $realNull,
+        round_off $realNull,
+        grand_total $realNull,
+        notes $textNull
       )
     ''');
 
@@ -107,11 +124,14 @@ class DatabaseHelper {
         id $idType,
         invoice_id $intNull,
         product_id $intNull,
+        product_name $textNull,
+        size $textNull,
+        hsn_code $textNull,
         quantity $intNull,
+        unit $textNull,
         price $realNull,
-        total $realNull,
-        FOREIGN KEY (invoice_id) REFERENCES invoices (id),
-        FOREIGN KEY (product_id) REFERENCES products (id)
+        amount $realNull,
+        FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE CASCADE
       )
     ''');
   }
@@ -201,6 +221,79 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // --- INVOICES CRUD ---
+  Future<String> generateNextInvoiceNumber() async {
+    final db = await instance.database;
+    final result = await db.rawQuery('SELECT MAX(id) as max_id FROM invoices');
+    int maxId = (result.first['max_id'] as int?) ?? 0;
+    int nextId = maxId + 1;
+    final year = DateTime.now().year;
+    return 'INV-$year-${nextId.toString().padLeft(4, '0')}';
+  }
+
+  Future<int> insertInvoice(Invoice invoice) async {
+    final db = await instance.database;
+    int invoiceId = 0;
+
+    await db.transaction((txn) async {
+      invoiceId = await txn.insert('invoices', invoice.toMap());
+
+      for (var item in invoice.items) {
+        final itemMap = item.copyWith(invoiceId: invoiceId).toMap();
+        await txn.insert('invoice_items', itemMap);
+      }
+    });
+
+    return invoiceId;
+  }
+
+  Future<List<Invoice>> getInvoices() async {
+    final db = await instance.database;
+    final result = await db.query('invoices', orderBy: 'id DESC');
+
+    List<Invoice> invoices = [];
+    for (var map in result) {
+      int invoiceId = map['id'] as int;
+      final itemsResult = await db.query(
+        'invoice_items',
+        where: 'invoice_id = ?',
+        whereArgs: [invoiceId],
+      );
+      final items = itemsResult.map((iMap) => InvoiceItem.fromMap(iMap)).toList();
+      invoices.add(Invoice.fromMap(map, items: items));
+    }
+    return invoices;
+  }
+
+  Future<Invoice?> getInvoiceById(int id) async {
+    final db = await instance.database;
+    final result = await db.query('invoices', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (result.isEmpty) return null;
+
+    final itemsResult = await db.query('invoice_items', where: 'invoice_id = ?', whereArgs: [id]);
+    final items = itemsResult.map((iMap) => InvoiceItem.fromMap(iMap)).toList();
+
+    return Invoice.fromMap(result.first, items: items);
+  }
+
+  Future<int> updateInvoiceStatus(int id, String status) async {
+    final db = await instance.database;
+    return await db.update(
+      'invoices',
+      {'status': status},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteInvoice(int id) async {
+    final db = await instance.database;
+    return await db.transaction((txn) async {
+      await txn.delete('invoice_items', where: 'invoice_id = ?', whereArgs: [id]);
+      return await txn.delete('invoices', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   Future close() async {
