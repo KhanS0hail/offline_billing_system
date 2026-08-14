@@ -45,13 +45,13 @@ class PdfInvoiceBuilder {
           return [
             // 1. TOP HEADER BLOCK
             pw.Row(
-              cross: pw.CrossAxisAlignment.start,
-              main: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 // Left: Company Info & Logo
                 pw.Expanded(
                   child: pw.Column(
-                    cross: pw.CrossAxisAlignment.start,
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       if (logoImage != null)
                         pw.Container(
@@ -80,7 +80,7 @@ class PdfInvoiceBuilder {
 
                 // Right: Invoice Title & Meta
                 pw.Column(
-                  cross: pw.CrossAxisAlignment.end,
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Container(
                       padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -118,11 +118,11 @@ class PdfInvoiceBuilder {
                 border: pw.Border.all(color: PdfColors.grey300),
               ),
               child: pw.Row(
-                cross: pw.CrossAxisAlignment.start,
-                main: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Column(
-                    cross: pw.CrossAxisAlignment.start,
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text('BILLED TO:', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                       pw.Text(
@@ -205,19 +205,19 @@ class PdfInvoiceBuilder {
 
             // 4. CALCULATIONS & PAYMENT DETAILS SPLIT BLOCK
             pw.Row(
-              cross: pw.CrossAxisAlignment.start,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 // Left Side: Amount in Words, Bank Info, Payment Status
                 pw.Expanded(
                   flex: 5,
                   child: pw.Column(
-                    cross: pw.CrossAxisAlignment.start,
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Container(
                         padding: const pw.EdgeInsets.all(6),
                         decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(4)),
                         child: pw.Column(
-                          cross: pw.CrossAxisAlignment.start,
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text('AMOUNT IN WORDS:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                             pw.Text(amountInWords, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
@@ -236,7 +236,7 @@ class PdfInvoiceBuilder {
                             borderRadius: pw.BorderRadius.circular(4),
                           ),
                           child: pw.Column(
-                            cross: pw.CrossAxisAlignment.start,
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Text('BANK & PAYMENT DETAILS:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
                               if (company?.bankName != null && company!.bankName!.isNotEmpty)
@@ -317,7 +317,7 @@ class PdfInvoiceBuilder {
                           padding: const pw.EdgeInsets.all(4),
                           color: PdfColors.blue900,
                           child: pw.Row(
-                            mainpw: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                             children: [
                               pw.Text('GRAND TOTAL', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
                               pw.Text('Rs ${invoice.grandTotal.toStringAsFixed(2)}', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 12)),
@@ -335,14 +335,14 @@ class PdfInvoiceBuilder {
 
             // 5. FOOTER BLOCK (TERMS & SIGNATURE)
             pw.Row(
-              cross: pw.CrossAxisAlignment.end,
-              main: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 // Left: Terms & Conditions
                 pw.Expanded(
                   child: company?.termsAndConditions != null && company!.termsAndConditions!.isNotEmpty
                       ? pw.Column(
-                          cross: pw.CrossAxisAlignment.start,
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text('TERMS & CONDITIONS:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                             pw.Text(company.termsAndConditions!, style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey800)),
@@ -354,7 +354,7 @@ class PdfInvoiceBuilder {
 
                 // Right: Authorized Signature / Stamp
                 pw.Column(
-                  cross: pw.CrossAxisAlignment.center,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
                     if (signatureImage != null)
                       pw.Container(
