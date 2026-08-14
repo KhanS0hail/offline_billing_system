@@ -16,6 +16,7 @@ class DatabaseHelper {
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDB('billing_system.db');
+    await _ensureSchemaUpToDate(_database!);
     return _database!;
   }
 
@@ -25,7 +26,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       password: 'default_secure_key',
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
@@ -141,57 +142,112 @@ class DatabaseHelper {
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      // Company columns
-      await _addColumnIfNotExists(db, 'company', 'tagline', 'TEXT');
-      await _addColumnIfNotExists(db, 'company', 'state_code', 'TEXT');
-      await _addColumnIfNotExists(db, 'company', 'bank_name', 'TEXT');
-      await _addColumnIfNotExists(db, 'company', 'account_number', 'TEXT');
-      await _addColumnIfNotExists(db, 'company', 'ifsc_code', 'TEXT');
-      await _addColumnIfNotExists(db, 'company', 'bank_branch', 'TEXT');
-      await _addColumnIfNotExists(db, 'company', 'upi_id', 'TEXT');
-      await _addColumnIfNotExists(db, 'company', 'payment_duration_days', 'INTEGER');
-      await _addColumnIfNotExists(db, 'company', 'signature_base64', 'TEXT');
-      await _addColumnIfNotExists(db, 'company', 'terms_and_conditions', 'TEXT');
+    await _ensureSchemaUpToDate(db);
+  }
 
-      // Customer columns
-      await _addColumnIfNotExists(db, 'customers', 'contact_person', 'TEXT');
-      await _addColumnIfNotExists(db, 'customers', 'state_code', 'TEXT');
-      await _addColumnIfNotExists(db, 'customers', 'opening_balance', 'REAL');
+  // Auto-patches any database table dynamically on launch to prevent save failures during app updates
+  Future<void> _ensureSchemaUpToDate(Database db) async {
+    // Ensure all tables exist
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS company (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS customers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_number TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS invoice_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_id INTEGER
+      )
+    ''');
 
-      // Product columns
-      await _addColumnIfNotExists(db, 'products', 'description', 'TEXT');
+    // Company columns
+    await _addColumnIfNotExists(db, 'company', 'tagline', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'phone', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'email', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'address', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'gst_number', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'state_code', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'bank_name', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'account_number', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'ifsc_code', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'bank_branch', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'upi_id', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'payment_duration_days', 'INTEGER');
+    await _addColumnIfNotExists(db, 'company', 'logo_base64', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'signature_base64', 'TEXT');
+    await _addColumnIfNotExists(db, 'company', 'terms_and_conditions', 'TEXT');
 
-      // Invoices columns
-      await _addColumnIfNotExists(db, 'invoices', 'invoice_type', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoices', 'challan_number', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoices', 'customer_name', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoices', 'customer_gstin', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoices', 'customer_state_code', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoices', 'customer_address', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoices', 'due_date', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoices', 'transport_charges', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'taxable_base', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'gst_rate', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'cgst_total', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'sgst_total', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'igst_total', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'total_tax', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'discount_amount', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'round_off', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'grand_total', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'received_amount', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'balance_amount', 'REAL');
-      await _addColumnIfNotExists(db, 'invoices', 'notes', 'TEXT');
+    // Customer columns
+    await _addColumnIfNotExists(db, 'customers', 'contact_person', 'TEXT');
+    await _addColumnIfNotExists(db, 'customers', 'phone', 'TEXT');
+    await _addColumnIfNotExists(db, 'customers', 'email', 'TEXT');
+    await _addColumnIfNotExists(db, 'customers', 'address', 'TEXT');
+    await _addColumnIfNotExists(db, 'customers', 'gst_number', 'TEXT');
+    await _addColumnIfNotExists(db, 'customers', 'state_code', 'TEXT');
+    await _addColumnIfNotExists(db, 'customers', 'opening_balance', 'REAL');
 
-      // Invoice Items columns
-      await _addColumnIfNotExists(db, 'invoice_items', 'product_name', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoice_items', 'size', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoice_items', 'pcs_count', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoice_items', 'hsn_code', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoice_items', 'unit', 'TEXT');
-      await _addColumnIfNotExists(db, 'invoice_items', 'amount', 'REAL');
-    }
+    // Product columns
+    await _addColumnIfNotExists(db, 'products', 'description', 'TEXT');
+    await _addColumnIfNotExists(db, 'products', 'hsn_code', 'TEXT');
+    await _addColumnIfNotExists(db, 'products', 'unit', 'TEXT');
+    await _addColumnIfNotExists(db, 'products', 'price', 'REAL');
+    await _addColumnIfNotExists(db, 'products', 'gst_rate', 'REAL');
+
+    // Invoices columns
+    await _addColumnIfNotExists(db, 'invoices', 'invoice_type', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'challan_number', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'customer_id', 'INTEGER');
+    await _addColumnIfNotExists(db, 'invoices', 'customer_name', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'customer_gstin', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'customer_state_code', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'customer_address', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'date', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'due_date', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'status', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'subtotal', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'transport_charges', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'taxable_base', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'gst_rate', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'cgst_total', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'sgst_total', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'igst_total', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'total_tax', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'discount_amount', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'round_off', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'grand_total', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'received_amount', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'balance_amount', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'notes', 'TEXT');
+
+    // Invoice Items columns
+    await _addColumnIfNotExists(db, 'invoice_items', 'product_id', 'INTEGER');
+    await _addColumnIfNotExists(db, 'invoice_items', 'product_name', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoice_items', 'size', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoice_items', 'pcs_count', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoice_items', 'hsn_code', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoice_items', 'quantity', 'INTEGER');
+    await _addColumnIfNotExists(db, 'invoice_items', 'unit', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoice_items', 'price', 'REAL');
+    await _addColumnIfNotExists(db, 'invoice_items', 'amount', 'REAL');
   }
 
   static Future<void> _addColumnIfNotExists(Database db, String table, String column, String type) async {
