@@ -22,6 +22,7 @@ class Invoice {
 
   final String date;
   final String? dueDate;
+  final String? paymentDate; // Date when payment was received
   final String status; // 'Unpaid', 'Paid', 'Partially Paid'
   final double subtotal;
   final double transportCharges;
@@ -58,6 +59,7 @@ class Invoice {
     this.shippingStateCode,
     required this.date,
     this.dueDate,
+    this.paymentDate,
     this.status = 'Unpaid',
     this.subtotal = 0.0,
     this.transportCharges = 0.0,
@@ -97,6 +99,7 @@ class Invoice {
       'shipping_state_code': shippingStateCode,
       'date': date,
       'due_date': dueDate,
+      'payment_date': paymentDate,
       'status': status,
       'subtotal': subtotal,
       'transport_charges': transportCharges,
@@ -140,6 +143,7 @@ class Invoice {
       shippingStateCode: map['shipping_state_code'],
       date: map['date'] ?? '',
       dueDate: map['due_date'],
+      paymentDate: map['payment_date'],
       status: status,
       subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
       transportCharges: (map['transport_charges'] as num?)?.toDouble() ?? 0.0,

@@ -303,6 +303,7 @@ class InvoiceProvider extends ChangeNotifier {
       customerAddress: _selectedCustomer?.address,
       date: formattedDate,
       dueDate: formattedDueDate,
+      paymentDate: (_paymentStatus == 'Paid' || _paymentStatus == 'Partially Paid') ? formattedDate : null,
       status: _paymentStatus,
       subtotal: totals.subtotal,
       transportCharges: totals.transportCharges,
@@ -332,8 +333,10 @@ class InvoiceProvider extends ChangeNotifier {
     return returnId;
   }
 
-  Future<void> updateInvoicePayment(int id, String status, {double? received, double? balance}) async {
-    await DatabaseHelper.instance.updateInvoiceStatus(id, status, receivedAmount: received, balanceAmount: balance);
+  Future<void> updateInvoicePayment(int id, String status, {double? received, double? balance, String? paymentDate}) async {
+    final todayStr = "${DateTime.now().day.toString().padLeft(2, '0')}-${_monthName(DateTime.now().month)}-${DateTime.now().year}";
+    final dateToSave = paymentDate ?? ((status == 'Paid' || status == 'Partially Paid') ? todayStr : null);
+    await DatabaseHelper.instance.updateInvoiceStatus(id, status, receivedAmount: received, balanceAmount: balance, paymentDate: dateToSave);
     await loadInvoices();
   }
 

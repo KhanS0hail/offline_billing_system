@@ -7,6 +7,7 @@ import 'company_profile_screen.dart';
 import 'customers_screen.dart';
 import 'products_screen.dart';
 import 'invoices_screen.dart';
+import 'reports_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -18,9 +19,8 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
 
-  // Placeholder screens for Day 1
   final List<Widget> _screens = [
-    const Center(child: Text("Dashboard Screen (Coming Soon)")),
+    const ReportsScreen(),
     const InvoicesScreen(),
     const ProductsScreen(),
     const CustomersScreen(),

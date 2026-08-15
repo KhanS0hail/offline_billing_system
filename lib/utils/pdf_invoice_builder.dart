@@ -268,7 +268,7 @@ class PdfInvoiceBuilder {
                 ),
               ),
               child: pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.center, // Centered alignment for vertical divider
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
                   // COL 1: BILLED TO
                   pw.Expanded(
@@ -294,9 +294,9 @@ class PdfInvoiceBuilder {
                   // VERTICALLY CENTERED HALF-HEIGHT SUBTLE GREY DIVIDER LINE
                   pw.Container(
                     width: 0.7,
-                    height: 42, // Half-height (~42pt)
+                    height: 42,
                     margin: const pw.EdgeInsets.symmetric(horizontal: 14),
-                    color: PdfColors.grey400, // Subtle low-opacity grey
+                    color: PdfColors.grey400,
                   ),
 
                   // COL 2: SHIPPED TO
@@ -436,7 +436,7 @@ class PdfInvoiceBuilder {
 
             pw.SizedBox(height: 14),
 
-            // 4. CALCULATIONS, BANK DETAILS & ITEMAZE T&C SPLIT BLOCK
+            // 4. CALCULATIONS, BANK DETAILS, ITEMAZE T&C, AND SIGNATURE IN RIGHT COL
             pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
@@ -556,71 +556,74 @@ class PdfInvoiceBuilder {
 
                 pw.SizedBox(width: 20),
 
-                // Right Side: Summary Totals
+                // Right Side: Summary Totals + SIGNATURE DIRECTLY BELOW GRAND TOTAL AT CONSTANT SPACE
                 pw.Expanded(
                   flex: 4,
-                  child: pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                    decoration: const pw.BoxDecoration(
-                      border: pw.Border(
-                        bottom: pw.BorderSide(color: PdfColors.black, width: 0.8),
-                      ),
-                    ),
-                    child: pw.Column(
-                      children: [
-                        _calcRow('Subtotal', invoice.subtotal.toStringAsFixed(2)),
-                        if (invoice.transportCharges > 0)
-                          _calcRow('Transport / Charges', '+ Rs ${invoice.transportCharges.toStringAsFixed(2)}'),
-                        _calcRow('Taxable Base', invoice.taxableBase.toStringAsFixed(2), isBold: true),
-                        pw.Divider(thickness: 0.5, color: PdfColors.grey400),
-                        if (isIntraState) ...[
-                          _calcRow('CGST (${(invoice.gstRate / 2).toStringAsFixed(1)}%)', '+ Rs ${invoice.cgstTotal.toStringAsFixed(2)}'),
-                          _calcRow('SGST (${(invoice.gstRate / 2).toStringAsFixed(1)}%)', '+ Rs ${invoice.sgstTotal.toStringAsFixed(2)}'),
-                        ] else ...[
-                          _calcRow('IGST (${invoice.gstRate.toStringAsFixed(1)}%)', '+ Rs ${invoice.igstTotal.toStringAsFixed(2)}'),
-                        ],
-                        if (invoice.discountAmount > 0)
-                          _calcRow('Discount', '- Rs ${invoice.discountAmount.toStringAsFixed(2)}'),
-                        _calcRow('Round Off', '${invoice.roundOff >= 0 ? "+" : ""}Rs ${invoice.roundOff.toStringAsFixed(2)}'),
-                        pw.Divider(thickness: 1, color: PdfColors.black),
-                        pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(vertical: 3),
-                          child: pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                            children: [
-                              pw.Text('GRAND TOTAL', style: pw.TextStyle(color: PdfColors.black, fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                              pw.Text('Rs ${invoice.grandTotal.toStringAsFixed(2)}', style: pw.TextStyle(color: PdfColors.black, fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                            ],
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(
+                            bottom: pw.BorderSide(color: PdfColors.black, width: 0.8),
                           ),
                         ),
-                      ],
-                    ),
+                        child: pw.Column(
+                          children: [
+                            _calcRow('Subtotal', invoice.subtotal.toStringAsFixed(2)),
+                            if (invoice.transportCharges > 0)
+                              _calcRow('Transport / Charges', '+ Rs ${invoice.transportCharges.toStringAsFixed(2)}'),
+                            _calcRow('Taxable Base', invoice.taxableBase.toStringAsFixed(2), isBold: true),
+                            pw.Divider(thickness: 0.5, color: PdfColors.grey400),
+                            if (isIntraState) ...[
+                              _calcRow('CGST (${(invoice.gstRate / 2).toStringAsFixed(1)}%)', '+ Rs ${invoice.cgstTotal.toStringAsFixed(2)}'),
+                              _calcRow('SGST (${(invoice.gstRate / 2).toStringAsFixed(1)}%)', '+ Rs ${invoice.sgstTotal.toStringAsFixed(2)}'),
+                            ] else ...[
+                              _calcRow('IGST (${invoice.gstRate.toStringAsFixed(1)}%)', '+ Rs ${invoice.igstTotal.toStringAsFixed(2)}'),
+                            ],
+                            if (invoice.discountAmount > 0)
+                              _calcRow('Discount', '- Rs ${invoice.discountAmount.toStringAsFixed(2)}'),
+                            _calcRow('Round Off', '${invoice.roundOff >= 0 ? "+" : ""}Rs ${invoice.roundOff.toStringAsFixed(2)}'),
+                            pw.Divider(thickness: 1, color: PdfColors.black),
+                            pw.Container(
+                              padding: const pw.EdgeInsets.symmetric(vertical: 3),
+                              child: pw.Row(
+                                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                children: [
+                                  pw.Text('GRAND TOTAL', style: pw.TextStyle(color: PdfColors.black, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                                  pw.Text('Rs ${invoice.grandTotal.toStringAsFixed(2)}', style: pw.TextStyle(color: PdfColors.black, fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // CONSTANT FIXED GAP (14PT) BELOW GRAND TOTAL
+                      pw.SizedBox(height: 14),
+
+                      // FOOTER SIGNATURE BLOCK ALWAYS DIRECTLY BELOW GRAND TOTAL
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          if (signatureImage != null)
+                            pw.Container(
+                              height: 45,
+                              width: 100,
+                              margin: const pw.EdgeInsets.only(bottom: 4),
+                              child: pw.Image(signatureImage, fit: pw.BoxFit.contain),
+                            )
+                          else
+                            pw.SizedBox(height: 35),
+                          pw.Text('For ${company?.name ?? "Company"}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                          pw.Text('Authorized Signatory', style: const pw.TextStyle(fontSize: 8, color: PdfColors.black)),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-
-            pw.SizedBox(height: 16),
-
-            // 5. FOOTER SIGNATURE BLOCK
-            pw.Align(
-              alignment: pw.Alignment.bottomRight,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  if (signatureImage != null)
-                    pw.Container(
-                      height: 45,
-                      width: 100,
-                      margin: const pw.EdgeInsets.only(bottom: 4),
-                      child: pw.Image(signatureImage, fit: pw.BoxFit.contain),
-                    )
-                  else
-                    pw.SizedBox(height: 40),
-                  pw.Text('For ${company?.name ?? "Company"}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('Authorized Signatory', style: const pw.TextStyle(fontSize: 8, color: PdfColors.black)),
-                ],
-              ),
             ),
           ];
         },

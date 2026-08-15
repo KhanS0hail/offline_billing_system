@@ -235,6 +235,7 @@ class DatabaseHelper {
     await _addColumnIfNotExists(db, 'invoices', 'shipping_state_code', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'date', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'due_date', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'payment_date', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'status', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'subtotal', 'REAL');
     await _addColumnIfNotExists(db, 'invoices', 'transport_charges', 'REAL');
@@ -439,11 +440,12 @@ class DatabaseHelper {
     return Invoice.fromMap(result.first, items: items);
   }
 
-  Future<int> updateInvoiceStatus(int id, String status, {double? receivedAmount, double? balanceAmount}) async {
+  Future<int> updateInvoiceStatus(int id, String status, {double? receivedAmount, double? balanceAmount, String? paymentDate}) async {
     final db = await instance.database;
     Map<String, dynamic> updateData = {'status': status};
     if (receivedAmount != null) updateData['received_amount'] = receivedAmount;
     if (balanceAmount != null) updateData['balance_amount'] = balanceAmount;
+    if (paymentDate != null) updateData['payment_date'] = paymentDate;
 
     return await db.update(
       'invoices',
