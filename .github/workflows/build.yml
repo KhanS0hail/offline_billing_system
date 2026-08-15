@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -60,7 +60,7 @@ jobs:
         run: flutter pub get
 
       - name: Build macOS Release App
-        run: flutter build macos --release --no-codesign
+        run: flutter build macos --release
 
       - name: Zip macOS App
         run: |
@@ -99,7 +99,11 @@ jobs:
       - name: Zip Windows Release Files
         shell: pwsh
         run: |
-          Compress-Archive -Path build/windows/runner/Release/* -DestinationPath Windows_Release_App.zip
+          if (Test-Path "build\windows\x64\runner\Release") {
+            Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath Windows_Release_App.zip
+          } else {
+            Compress-Archive -Path "build\windows\runner\Release\*" -DestinationPath Windows_Release_App.zip
+          }
 
       - name: Upload Windows App Artifact
         uses: actions/upload-artifact@v4
