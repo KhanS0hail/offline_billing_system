@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:path/path.dart';
-import 'package:sqflite_sqlcipher/sqflite.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/company.dart';
@@ -32,8 +32,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
-      password: 'default_secure_key',
+      version: 5,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
