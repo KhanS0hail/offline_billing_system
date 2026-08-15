@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # 1. BUILD ANDROID APK
+  # 1. BUILD ANDROID RELEASE APK
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
@@ -39,10 +39,10 @@ jobs:
           name: Android-Release-APK
           path: build/app/outputs/flutter-apk/app-release.apk
 
-  # 2. BUILD MACOS APP
+  # 2. BUILD MACOS DESKTOP APP
   build-macos:
     name: Build macOS Desktop App
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -53,11 +53,19 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Enable macOS Desktop
+        run: flutter config --enable-macos-desktop
+
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Install CocoaPods
+        run: |
+          cd macos
+          pod install --repo-update
+
       - name: Build macOS Release App
-        run: flutter build macos --release
+        run: flutter build macos --release --no-codesign
 
       - name: Zip macOS App
         run: |
@@ -70,7 +78,7 @@ jobs:
           name: macOS-Release-App
           path: build/macos/Build/Products/Release/macOS_Release_App.zip
 
-  # 3. BUILD WINDOWS EXE
+  # 3. BUILD WINDOWS DESKTOP EXE
   build-windows:
     name: Build Windows Desktop EXE
     runs-on: windows-latest
@@ -84,11 +92,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Dependencies
-        run: flutter pub get
-
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
 
       - name: Build Windows Release EXE
         run: flutter build windows --release

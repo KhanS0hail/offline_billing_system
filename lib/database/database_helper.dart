@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:path/path.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/company.dart';
 import '../models/customer.dart';
@@ -21,6 +23,10 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDB(String filePath) async {
+    if (Platform.isWindows || Platform.isLinux) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
     final dbPath = await getApplicationDocumentsDirectory();
     final path = join(dbPath.path, filePath);
 
