@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/company_provider.dart';
 import '../models/company.dart';
+import 'backup_screen.dart';
 
 class CompanyProfileScreen extends StatefulWidget {
   const CompanyProfileScreen({super.key});
@@ -362,6 +363,31 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                     icon: Icons.draw_rounded,
                     onPick: () => _pickImage(isLogo: false),
                     onRemove: () => setState(() => _signatureBase64 = null),
+                  ),
+                  const SizedBox(height: 24),
+
+                  _buildSectionHeader(Icons.cloud_sync_rounded, "Cloud Sync & App Security"),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.shield_outlined),
+                      ),
+                      title: const Text('Google Drive Backup & PIN Lock', style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: const Text('Sync database to cloud and set passcode lock'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const BackupScreen()),
+                        );
+                      },
+                    ),
                   ),
                   const SizedBox(height: 32),
 

@@ -6,7 +6,10 @@ import 'providers/company_provider.dart';
 import 'providers/customer_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/invoice_provider.dart';
+import 'services/app_lock_service.dart';
+import 'services/google_drive_service.dart';
 import 'screens/main_shell.dart';
+import 'screens/pin_lock_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +25,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => InvoiceProvider()),
+        ChangeNotifierProvider(create: (_) => AppLockService()),
+        ChangeNotifierProvider(create: (_) => GoogleDriveService()),
       ],
       child: const BillingApp(),
     ),
@@ -49,7 +54,14 @@ class BillingApp extends StatelessWidget {
         brightness: Brightness.dark,
         colorSchemeSeed: Colors.blue,
       ),
-      home: const MainShell(),
+      home: Consumer<AppLockService>(
+        builder: (context, lockService, child) {
+          if (lockService.isLocked) {
+            return const PinLockScreen(mode: PinMode.verify);
+          }
+          return const MainShell();
+        },
+      ),
     );
   }
 }
