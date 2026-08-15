@@ -1,0 +1,105 @@
+name: Multi-Platform Release Build (Android, macOS, Windows)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  # 1. BUILD ANDROID APK
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Android Release APK
+        run: flutter build apk --release
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  # 2. BUILD MACOS APP
+  build-macos:
+    name: Build macOS Desktop App
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build macOS Release App
+        run: flutter build macos --release
+
+      - name: Zip macOS App
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r macOS_Release_App.zip offline_billing_system.app
+
+      - name: Upload macOS App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-Release-App
+          path: build/macos/Build/Products/Release/macOS_Release_App.zip
+
+  # 3. BUILD WINDOWS EXE
+  build-windows:
+    name: Build Windows Desktop EXE
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Build Windows Release EXE
+        run: flutter build windows --release
+
+      - name: Zip Windows Release Files
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build/windows/runner/Release/* -DestinationPath Windows_Release_App.zip
+
+      - name: Upload Windows App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Release-App
+          path: Windows_Release_App.zip
