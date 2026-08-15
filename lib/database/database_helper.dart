@@ -474,9 +474,4 @@ class DatabaseHelper {
       return await txn.delete('invoices', where: 'id = ?', whereArgs: [id]);
     });
   }
-
-  Future close() async {
-    final db = await instance.database;
-    db.close();
-  }
 }
