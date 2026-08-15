@@ -438,7 +438,7 @@ class PdfInvoiceBuilder {
 
             // 4. CALCULATIONS, BANK DETAILS & ITEMAZE T&C SPLIT BLOCK
             pw.Row(
-              cross: pw.CrossAxisAlignment.start,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 // Left Side: Amount in Words, Bank Info, AND Itemized T&C List
                 pw.Expanded(
@@ -537,7 +537,7 @@ class PdfInvoiceBuilder {
                               return pw.Padding(
                                 padding: const pw.EdgeInsets.only(bottom: 1.5),
                                 child: pw.Row(
-                                  cross: pw.CrossAxisAlignment.start,
+                                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                                   children: [
                                     pw.Text('$idx] ', style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
                                     pw.Expanded(
