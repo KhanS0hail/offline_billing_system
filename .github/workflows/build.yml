@@ -65,7 +65,7 @@ jobs:
       - name: Zip macOS App
         run: |
           cd build/macos/Build/Products/Release
-          zip -r macOS_Release_App.zip offline_billing_system.app
+          zip -r macOS_Release_App.zip *.app
 
       - name: Upload macOS App Artifact
         uses: actions/upload-artifact@v4
