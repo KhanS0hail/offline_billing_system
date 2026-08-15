@@ -7,7 +7,7 @@ import 'providers/customer_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/invoice_provider.dart';
 import 'services/app_lock_service.dart';
-import 'services/google_drive_service.dart';
+import 'services/backup_service.dart';
 import 'screens/main_shell.dart';
 import 'screens/pin_lock_screen.dart';
 
@@ -26,7 +26,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => InvoiceProvider()),
         ChangeNotifierProvider(create: (_) => AppLockService()),
-        ChangeNotifierProvider(create: (_) => GoogleDriveService()),
+        ChangeNotifierProvider(create: (_) => BackupService()),
       ],
       child: const BillingApp(),
     ),

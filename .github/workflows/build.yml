@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # 1. BUILD ANDROID RELEASE APK
+  # 1. BUILD ANDROID APK (DEBUG SIGNATURE FOR DIRECT IN-PLACE UPDATE WITHOUT DATA LOSS)
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
@@ -30,14 +30,14 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Android Release APK
-        run: flutter build apk --release
+      - name: Build Android Update APK
+        run: flutter build apk --debug
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Android-Release-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: Android-Update-APK
+          path: build/app/outputs/flutter-apk/app-debug.apk
 
   # 2. BUILD MACOS DESKTOP APP
   build-macos:

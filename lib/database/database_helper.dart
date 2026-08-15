@@ -22,6 +22,13 @@ class DatabaseHelper {
     return _database!;
   }
 
+  Future<void> close() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+  }
+
   Future<Database> _initDB(String filePath) async {
     if (Platform.isWindows || Platform.isLinux) {
       sqfliteFfiInit();
