@@ -30,7 +30,8 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
   late TextEditingController _upiIdController;
   late TextEditingController _paymentDurationController;
 
-  late TextEditingController _termsController;
+  // Itemized List of Terms & Conditions
+  List<TextEditingController> _tcControllers = [];
 
   String? _logoBase64;
   String? _signatureBase64;
@@ -62,10 +63,29 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     _upiIdController = TextEditingController(text: comp?.upiId ?? '');
     _paymentDurationController = TextEditingController(text: comp?.paymentDurationDays.toString() ?? '15');
 
-    _termsController = TextEditingController(text: comp?.termsAndConditions ?? '');
-
     _logoBase64 = comp?.logoBase64;
     _signatureBase64 = comp?.signatureBase64;
+
+    // Parse T&C items into list of controllers
+    _tcControllers = [];
+    if (comp?.termsAndConditions != null && comp!.termsAndConditions!.trim().isNotEmpty) {
+      final lines = comp.termsAndConditions!.trim().split('\n');
+      for (var l in lines) {
+        final trimmed = l.trim().replaceFirst(RegExp(r'^\d+[\.\)\]]\s*'), '');
+        if (trimmed.isNotEmpty) {
+          _tcControllers.add(TextEditingController(text: trimmed));
+        }
+      }
+    }
+
+    if (_tcControllers.isEmpty) {
+      _tcControllers = [
+        TextEditingController(text: 'Subject to Mumbai jurisdiction.'),
+        TextEditingController(text: 'Goods once sold will not be taken back.'),
+        TextEditingController(text: 'Our responsibility ceases as soon as the goods leave our premises.'),
+        TextEditingController(text: 'Interest @ 24% P.A. will be charged on all overdue payments.'),
+      ];
+    }
   }
 
   @override
@@ -83,8 +103,23 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     _branchController.dispose();
     _upiIdController.dispose();
     _paymentDurationController.dispose();
-    _termsController.dispose();
+    for (var c in _tcControllers) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  void _addTcItem() {
+    setState(() {
+      _tcControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeTcItem(int index) {
+    setState(() {
+      _tcControllers[index].dispose();
+      _tcControllers.removeAt(index);
+    });
   }
 
   Future<void> _pickImage({required bool isLogo}) async {
@@ -120,6 +155,12 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     if (_formKey.currentState!.validate()) {
       final provider = Provider.of<CompanyProvider>(context, listen: false);
 
+      // Join itemized T&C list into multiline string
+      final tcString = _tcControllers
+          .map((c) => c.text.trim())
+          .where((t) => t.isNotEmpty)
+          .join('\n');
+
       final updatedCompany = Company(
         id: provider.company?.id,
         name: _nameController.text.trim(),
@@ -135,7 +176,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
         bankBranch: _branchController.text.trim(),
         upiId: _upiIdController.text.trim(),
         paymentDurationDays: int.tryParse(_paymentDurationController.text.trim()) ?? 15,
-        termsAndConditions: _termsController.text.trim(),
+        termsAndConditions: tcString,
         logoBase64: _logoBase64,
         signatureBase64: _signatureBase64,
       );
@@ -145,7 +186,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Company details & images saved successfully!'),
+            content: Text('Company details, T&C list & images saved successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -243,12 +284,77 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  _buildSectionHeader(Icons.gavel_rounded, "Invoice Terms & Signature"),
-                  const SizedBox(height: 12),
-                  _buildTextField(_termsController, 'Terms & Conditions', Icons.note, maxLines: 3),
-                  const SizedBox(height: 16),
+                  // ITEMAZE TERMS & CONDITIONS SECTION
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildSectionHeader(Icons.gavel_rounded, "Terms & Conditions"),
+                      TextButton.icon(
+                        onPressed: _addTcItem,
+                        icon: const Icon(Icons.add_circle_outline, size: 18),
+                        label: const Text('+ Add Clause'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        children: [
+                          ..._tcControllers.asMap().entries.map((entry) {
+                            final idx = entry.key;
+                            final controller = entry.value;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                    child: Text(
+                                      '${idx + 1}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: controller,
+                                      decoration: InputDecoration(
+                                        hintText: 'Enter term/clause condition...',
+                                        isDense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                    onPressed: () => _removeTcItem(idx),
+                                    tooltip: 'Delete clause',
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-                  // Digital Signature / Stamp Picker Widget
+                  _buildSectionHeader(Icons.draw_rounded, "Digital Signature / Stamp"),
+                  const SizedBox(height: 12),
                   _buildImagePickerCard(
                     title: 'Digital Signature / Stamp',
                     subtitle: 'Appears at bottom of invoices',

@@ -20,6 +20,8 @@ class CreateInvoiceScreen extends StatefulWidget {
 
 class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   late TextEditingController _challanController;
+  late TextEditingController _vehicleController;
+  late TextEditingController _transportModeController;
   late TextEditingController _transportController;
   late TextEditingController _discountController;
   late TextEditingController _receivedController;
@@ -30,6 +32,8 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     super.initState();
     final invProvider = Provider.of<InvoiceProvider>(context, listen: false);
     _challanController = TextEditingController(text: invProvider.challanNumber ?? '');
+    _vehicleController = TextEditingController(text: invProvider.vehicleNumber);
+    _transportModeController = TextEditingController(text: invProvider.transportMode);
     _transportController = TextEditingController(text: invProvider.transportCharges == 0 ? '' : invProvider.transportCharges.toString());
     _discountController = TextEditingController(text: invProvider.discountAmount == 0 ? '' : invProvider.discountAmount.toString());
     _receivedController = TextEditingController(text: invProvider.receivedAmount == 0 ? '' : invProvider.receivedAmount.toString());
@@ -39,6 +43,8 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   @override
   void dispose() {
     _challanController.dispose();
+    _vehicleController.dispose();
+    _transportModeController.dispose();
     _transportController.dispose();
     _discountController.dispose();
     _receivedController.dispose();
@@ -322,7 +328,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 2. HEADER META CARD
+                // 2. HEADER META CARD (WITH DELIVERY DATE & VEHICLE / TRANSPORT FIELDS)
                 Card(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: Padding(
@@ -378,20 +384,72 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        InkWell(
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: invProvider.dueDate,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2030),
-                            );
-                            if (picked != null) invProvider.setDueDate(picked);
-                          },
-                          child: InputDecorator(
-                            decoration: const InputDecoration(labelText: 'Payment Due Date (Default +15 Days)', prefixIcon: Icon(Icons.timer), border: OutlineInputBorder()),
-                            child: Text("${invProvider.dueDate.day}/${invProvider.dueDate.month}/${invProvider.dueDate.year}"),
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: invProvider.deliveryDate,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2030),
+                                  );
+                                  if (picked != null) invProvider.setDeliveryDate(picked);
+                                },
+                                child: InputDecorator(
+                                  decoration: const InputDecoration(labelText: 'Delivery Date', prefixIcon: Icon(Icons.local_shipping_outlined), border: OutlineInputBorder()),
+                                  child: Text("${invProvider.deliveryDate.day}/${invProvider.deliveryDate.month}/${invProvider.deliveryDate.year}"),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: invProvider.dueDate,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2030),
+                                  );
+                                  if (picked != null) invProvider.setDueDate(picked);
+                                },
+                                child: InputDecorator(
+                                  decoration: const InputDecoration(labelText: 'Payment Due Date', prefixIcon: Icon(Icons.timer), border: OutlineInputBorder()),
+                                  child: Text("${invProvider.dueDate.day}/${invProvider.dueDate.month}/${invProvider.dueDate.year}"),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _vehicleController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Vehicle / Lorry No. (Optional)',
+                                  prefixIcon: Icon(Icons.directions_car),
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (v) => invProvider.setVehicleNumber(v),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: _transportModeController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Transport Mode (e.g. By Road)',
+                                  prefixIcon: Icon(Icons.commute),
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (v) => invProvider.setTransportMode(v),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

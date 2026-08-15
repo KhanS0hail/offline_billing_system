@@ -236,7 +236,8 @@ class InvoicesScreen extends StatelessWidget {
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                child: ListTile(
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
                                   onTap: () {
                                     Navigator.push(
                                       context,
@@ -245,69 +246,115 @@ class InvoicesScreen extends StatelessWidget {
                                       ),
                                     );
                                   },
-                                  leading: CircleAvatar(
-                                    backgroundColor: statusColor.withOpacity(0.2),
-                                    child: Icon(statusIcon, color: statusColor),
-                                  ),
-                                  title: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(inv.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                      Text(
-                                        '₹${inv.grandTotal.toStringAsFixed(2)}',
-                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.primary),
-                                      ),
-                                    ],
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Customer: ${inv.customerName ?? "Cash Customer"}'),
-                                      Text('Date: ${inv.date}${inv.dueDate != null ? " | Due: ${inv.dueDate}" : ""}'),
-                                      if (isPartial)
-                                        Text(
-                                          'Received: ₹${inv.receivedAmount.toStringAsFixed(2)} | Due: ₹${inv.balanceAmount.toStringAsFixed(2)}',
-                                          style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
-                                        ),
-                                    ],
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.picture_as_pdf, color: Colors.blue),
-                                        tooltip: 'View / Print PDF',
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => PdfPreviewScreen(invoice: inv),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(14.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // 1. Top Row: Status Avatar + Invoice Number (Left Aligned) & Date (Right Aligned)
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                CircleAvatar(
+                                                  radius: 14,
+                                                  backgroundColor: statusColor.withOpacity(0.15),
+                                                  child: Icon(statusIcon, color: statusColor, size: 16),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  inv.invoiceNumber,
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                                ),
+                                              ],
                                             ),
-                                          );
-                                        },
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.edit, color: Colors.amber),
-                                        tooltip: 'Edit Invoice',
-                                        onPressed: () {
-                                          final customers = Provider.of<CustomerProvider>(context, listen: false).customers;
-                                          provider.prepareEditInvoice(inv, customers);
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (_) => const CreateInvoiceScreen()),
-                                          );
-                                        },
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.edit_note, color: statusColor),
-                                        tooltip: 'Update Payment Status',
-                                        onPressed: () => _showUpdatePaymentDialog(context, inv),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
-                                        onPressed: () => _confirmDelete(context, inv),
-                                      ),
-                                    ],
+                                            Text(
+                                              inv.date,
+                                              style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+
+                                        // 2. Customer
+                                        Text(
+                                          'Customer: ${inv.customerName ?? "Cash Customer"}',
+                                          style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                        ),
+                                        const SizedBox(height: 4),
+
+                                        // 3. Grand Total Amount & Due Amount Line
+                                        RichText(
+                                          text: TextSpan(
+                                            style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                            children: [
+                                              const TextSpan(text: 'Grand Total: '),
+                                              TextSpan(
+                                                text: '₹${inv.grandTotal.toStringAsFixed(2)}',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                              ),
+                                              const TextSpan(text: '  |  Due: '),
+                                              TextSpan(
+                                                text: '₹${inv.balanceAmount.toStringAsFixed(2)}',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: inv.balanceAmount > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+
+                                        const Divider(height: 1, thickness: 0.8),
+                                        const SizedBox(height: 4),
+
+                                        // 4. Last Line: All Action Buttons
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            TextButton.icon(
+                                              icon: const Icon(Icons.picture_as_pdf, color: Colors.blue, size: 18),
+                                              label: const Text('PDF'),
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => PdfPreviewScreen(invoice: inv),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.edit, color: Colors.amber),
+                                              tooltip: 'Edit Invoice',
+                                              onPressed: () {
+                                                final customers = Provider.of<CustomerProvider>(context, listen: false).customers;
+                                                provider.prepareEditInvoice(inv, customers);
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (_) => const CreateInvoiceScreen()),
+                                                );
+                                              },
+                                            ),
+                                            IconButton(
+                                              icon: Icon(Icons.edit_note, color: statusColor),
+                                              tooltip: 'Update Payment Status',
+                                              onPressed: () => _showUpdatePaymentDialog(context, inv),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.delete, color: Colors.red),
+                                              tooltip: 'Delete Invoice',
+                                              onPressed: () => _confirmDelete(context, inv),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );

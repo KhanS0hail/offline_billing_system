@@ -18,6 +18,9 @@ class InvoiceProvider extends ChangeNotifier {
   String _invoiceType = 'TAX INVOICE'; // 'TAX INVOICE' or 'PROFORMA INVOICE'
   String _nextInvoiceNumber = '';
   String? _challanNumber;
+  DateTime _deliveryDate = DateTime.now();
+  String _vehicleNumber = '';
+  String _transportMode = '';
   Customer? _selectedCustomer;
   DateTime _invoiceDate = DateTime.now();
   DateTime _dueDate = DateTime.now().add(const Duration(days: 15)); // Default 15 days
@@ -56,6 +59,9 @@ class InvoiceProvider extends ChangeNotifier {
   String get invoiceType => _invoiceType;
   String get nextInvoiceNumber => _nextInvoiceNumber;
   String? get challanNumber => _challanNumber;
+  DateTime get deliveryDate => _deliveryDate;
+  String get vehicleNumber => _vehicleNumber;
+  String get transportMode => _transportMode;
   Customer? get selectedCustomer => _selectedCustomer;
   DateTime get invoiceDate => _invoiceDate;
   DateTime get dueDate => _dueDate;
@@ -95,6 +101,9 @@ class InvoiceProvider extends ChangeNotifier {
     _invoiceType = 'TAX INVOICE';
     _nextInvoiceNumber = await DatabaseHelper.instance.generateNextInvoiceNumber();
     _challanNumber = null;
+    _deliveryDate = DateTime.now();
+    _vehicleNumber = '';
+    _transportMode = '';
     _selectedCustomer = null;
     _invoiceDate = DateTime.now();
     _dueDate = DateTime.now().add(const Duration(days: 15));
@@ -113,6 +122,27 @@ class InvoiceProvider extends ChangeNotifier {
     _invoiceType = invoice.invoiceType;
     _nextInvoiceNumber = invoice.invoiceNumber;
     _challanNumber = invoice.challanNumber;
+    _vehicleNumber = invoice.vehicleNumber ?? '';
+    _transportMode = invoice.transportMode ?? '';
+
+    // Parse delivery date if exists
+    if (invoice.deliveryDate != null && invoice.deliveryDate!.isNotEmpty) {
+      try {
+        final parts = invoice.deliveryDate!.split('-');
+        if (parts.length == 3) {
+          final day = int.parse(parts[0]);
+          final monthStr = parts[1];
+          final year = int.parse(parts[2]);
+          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          final month = months.indexOf(monthStr) + 1;
+          _deliveryDate = DateTime(year, month > 0 ? month : 1, day);
+        }
+      } catch (_) {
+        _deliveryDate = DateTime.now();
+      }
+    } else {
+      _deliveryDate = DateTime.now();
+    }
     
     // Find matching customer
     _selectedCustomer = null;
@@ -142,6 +172,21 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setDeliveryDate(DateTime date) {
+    _deliveryDate = date;
+    notifyListeners();
+  }
+
+  void setVehicleNumber(String vehicle) {
+    _vehicleNumber = vehicle;
+    notifyListeners();
+  }
+
+  void setTransportMode(String mode) {
+    _transportMode = mode;
+    notifyListeners();
+  }
+
   void setSelectedCustomer(Customer? customer) {
     _selectedCustomer = customer;
     notifyListeners();
@@ -149,6 +194,7 @@ class InvoiceProvider extends ChangeNotifier {
 
   void setInvoiceDate(DateTime date) {
     _invoiceDate = date;
+    _deliveryDate = date; // Default delivery date to invoice date
     _dueDate = date.add(const Duration(days: 15));
     notifyListeners();
   }
@@ -231,6 +277,7 @@ class InvoiceProvider extends ChangeNotifier {
   Future<int> saveDraftInvoice(Company? company) async {
     final totals = calculateCurrentTotals(company);
     final formattedDate = "${_invoiceDate.day.toString().padLeft(2, '0')}-${_monthName(_invoiceDate.month)}-${_invoiceDate.year}";
+    final formattedDeliveryDate = "${_deliveryDate.day.toString().padLeft(2, '0')}-${_monthName(_deliveryDate.month)}-${_deliveryDate.year}";
     final formattedDueDate = "${_dueDate.day.toString().padLeft(2, '0')}-${_monthName(_dueDate.month)}-${_dueDate.year}";
 
     double actualReceived = 0.0;
@@ -246,6 +293,9 @@ class InvoiceProvider extends ChangeNotifier {
       invoiceType: _invoiceType,
       invoiceNumber: _nextInvoiceNumber,
       challanNumber: (_challanNumber != null && _challanNumber!.trim().isNotEmpty) ? _challanNumber!.trim() : null,
+      deliveryDate: formattedDeliveryDate,
+      vehicleNumber: (_vehicleNumber.trim().isNotEmpty) ? _vehicleNumber.trim() : null,
+      transportMode: (_transportMode.trim().isNotEmpty) ? _transportMode.trim() : null,
       customerId: _selectedCustomer?.id,
       customerName: _selectedCustomer?.name,
       customerGstin: _selectedCustomer?.gstNumber,

@@ -5,11 +5,21 @@ class Invoice {
   final String invoiceType; // 'TAX INVOICE' or 'PROFORMA INVOICE'
   final String invoiceNumber;
   final String? challanNumber;
+  final String? deliveryDate;
+  final String? vehicleNumber;
+  final String? transportMode;
   final int? customerId;
   final String? customerName;
   final String? customerGstin;
   final String? customerStateCode;
   final String? customerAddress;
+  
+  // Shipping Customer Fields (Optional, defaults to Billed To if null/empty)
+  final String? shippingCustomerName;
+  final String? shippingAddress;
+  final String? shippingGstin;
+  final String? shippingStateCode;
+
   final String date;
   final String? dueDate;
   final String status; // 'Unpaid', 'Paid', 'Partially Paid'
@@ -34,11 +44,18 @@ class Invoice {
     this.invoiceType = 'TAX INVOICE',
     required this.invoiceNumber,
     this.challanNumber,
+    this.deliveryDate,
+    this.vehicleNumber,
+    this.transportMode,
     this.customerId,
     this.customerName,
     this.customerGstin,
     this.customerStateCode,
     this.customerAddress,
+    this.shippingCustomerName,
+    this.shippingAddress,
+    this.shippingGstin,
+    this.shippingStateCode,
     required this.date,
     this.dueDate,
     this.status = 'Unpaid',
@@ -66,11 +83,18 @@ class Invoice {
       'invoice_type': invoiceType,
       'invoice_number': invoiceNumber,
       'challan_number': challanNumber,
+      'delivery_date': deliveryDate,
+      'vehicle_number': vehicleNumber,
+      'transport_mode': transportMode,
       'customer_id': customerId,
       'customer_name': customerName,
       'customer_gstin': customerGstin,
       'customer_state_code': customerStateCode,
       'customer_address': customerAddress,
+      'shipping_customer_name': shippingCustomerName,
+      'shipping_address': shippingAddress,
+      'shipping_gstin': shippingGstin,
+      'shipping_state_code': shippingStateCode,
       'date': date,
       'due_date': dueDate,
       'status': status,
@@ -102,11 +126,18 @@ class Invoice {
       invoiceType: map['invoice_type'] ?? 'TAX INVOICE',
       invoiceNumber: map['invoice_number'] ?? '',
       challanNumber: map['challan_number'],
+      deliveryDate: map['delivery_date'],
+      vehicleNumber: map['vehicle_number'],
+      transportMode: map['transport_mode'],
       customerId: map['customer_id'] as int?,
       customerName: map['customer_name'],
       customerGstin: map['customer_gstin'],
       customerStateCode: map['customer_state_code'],
       customerAddress: map['customer_address'],
+      shippingCustomerName: map['shipping_customer_name'],
+      shippingAddress: map['shipping_address'],
+      shippingGstin: map['shipping_gstin'],
+      shippingStateCode: map['shipping_state_code'],
       date: map['date'] ?? '',
       dueDate: map['due_date'],
       status: status,

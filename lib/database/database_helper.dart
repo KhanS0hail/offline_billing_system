@@ -26,7 +26,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       password: 'default_secure_key',
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
@@ -97,11 +97,18 @@ class DatabaseHelper {
         invoice_type $textNull,
         invoice_number $textNull,
         challan_number $textNull,
+        delivery_date $textNull,
+        vehicle_number $textNull,
+        transport_mode $textNull,
         customer_id $intNull,
         customer_name $textNull,
         customer_gstin $textNull,
         customer_state_code $textNull,
         customer_address $textNull,
+        shipping_customer_name $textNull,
+        shipping_address $textNull,
+        shipping_gstin $textNull,
+        shipping_state_code $textNull,
         date $textNull,
         due_date $textNull,
         status $textNull,
@@ -145,7 +152,6 @@ class DatabaseHelper {
     await _ensureSchemaUpToDate(db);
   }
 
-  // Auto-patches any database table dynamically on launch to prevent save failures during app updates
   Future<void> _ensureSchemaUpToDate(Database db) async {
     // Ensure all tables exist
     await db.execute('''
@@ -215,11 +221,18 @@ class DatabaseHelper {
     // Invoices columns
     await _addColumnIfNotExists(db, 'invoices', 'invoice_type', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'challan_number', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'delivery_date', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'vehicle_number', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'transport_mode', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'customer_id', 'INTEGER');
     await _addColumnIfNotExists(db, 'invoices', 'customer_name', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'customer_gstin', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'customer_state_code', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'customer_address', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'shipping_customer_name', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'shipping_address', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'shipping_gstin', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'shipping_state_code', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'date', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'due_date', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'status', 'TEXT');

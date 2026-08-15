@@ -207,12 +207,12 @@ class CustomersScreen extends StatelessWidget {
                                   subtitle: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
+                                      if (cust.contactPerson != null && cust.contactPerson!.isNotEmpty)
+                                        Text('Contact Person: ${cust.contactPerson}'),
                                       if (cust.phone != null && cust.phone!.isNotEmpty)
                                         Text('Phone: ${cust.phone}'),
                                       if (cust.gstNumber != null && cust.gstNumber!.isNotEmpty)
                                         Text('GSTIN: ${cust.gstNumber}'),
-                                      if (cust.address != null && cust.address!.isNotEmpty)
-                                        Text('Address: ${cust.address}'),
                                     ],
                                   ),
                                   trailing: Row(
