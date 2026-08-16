@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.billing.billing_system"
-    compileSdk = 36
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
