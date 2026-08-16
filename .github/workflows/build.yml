@@ -30,6 +30,9 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Decode Fixed Signing Keystore
+        run: base64 -d android/app/debug.keystore.b64 > android/app/debug.keystore
+
       - name: Build Android Update APK
         run: flutter build apk --debug
 
