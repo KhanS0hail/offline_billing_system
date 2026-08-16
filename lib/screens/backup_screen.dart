@@ -42,7 +42,8 @@ class _BackupScreenState extends State<BackupScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Database Backup & Restore', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                              Text('Database Backup & Restore',
+                                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                               Text(
                                 'Export or import your billing database file',
                                 style: TextStyle(fontSize: 12, color: Colors.grey),
@@ -100,8 +101,8 @@ class _BackupScreenState extends State<BackupScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.upload_file_rounded),
                         label: const Text('Export Backup'),
                         style: ElevatedButton.styleFrom(
@@ -124,37 +125,33 @@ class _BackupScreenState extends State<BackupScreen> {
                         onPressed: backupService.isBusy
                             ? null
                             : () async {
-                                // Confirm before restore
                                 final confirm = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
                                     title: const Text('Restore from Backup?'),
                                     content: const Text(
-                                      'This will REPLACE all current invoices, customers, and products with the backup file data.\n\nAre you sure you want to continue?',
+                                      'This will REPLACE all current invoices, customers, and products with the backup file data.\n\nAre you sure?',
                                     ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () => Navigator.pop(ctx, false),
-                                        child: const Text('Cancel'),
-                                      ),
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text('Cancel')),
                                       ElevatedButton(
                                         onPressed: () => Navigator.pop(ctx, true),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.orange,
-                                        ),
+                                            backgroundColor: Colors.orange),
                                         child: const Text('Yes, Restore'),
                                       ),
                                     ],
                                   ),
                                 );
-
                                 if (confirm == true) {
                                   final success = await backupService.importBackup();
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(success
-                                            ? 'Database restored successfully! Restart the app to see updated data.'
+                                            ? 'Database restored! Restart the app to see updated data.'
                                             : 'Restore failed. Please select a valid .db backup file.'),
                                       ),
                                     );
@@ -170,7 +167,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Pick a .db backup file from your device to restore all invoices, customers, and products.',
+                      'Pick a .db backup file from your device to restore all data.',
                       style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ],
@@ -196,15 +193,16 @@ class _BackupScreenState extends State<BackupScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('App Security & PIN Lock', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                              Text('Protect billing data with 4-digit passcode', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              Text('App Security & PIN Lock',
+                                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                              Text('Protect billing data with 4-digit passcode',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey)),
                             ],
                           ),
                         ),
                       ],
                     ),
                     const Divider(height: 24),
-
                     SwitchListTile(
                       title: const Text('Enable Security PIN'),
                       subtitle: Text(
@@ -219,8 +217,7 @@ class _BackupScreenState extends State<BackupScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const PinLockScreen(mode: PinMode.create),
-                              ),
+                                  builder: (_) => const PinLockScreen(mode: PinMode.create)),
                             );
                           } else {
                             await lockService.setPinEnabled(true);
@@ -230,25 +227,22 @@ class _BackupScreenState extends State<BackupScreen> {
                         }
                       },
                     ),
-
                     if (lockService.isPinSet) ...[
                       const Divider(),
                       ListTile(
                         leading: const Icon(Icons.password_rounded),
                         title: const Text('Change Security PIN'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PinLockScreen(mode: PinMode.create),
-                            ),
-                          );
-                        },
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const PinLockScreen(mode: PinMode.create)),
+                        ),
                       ),
                       ListTile(
                         leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-                        title: const Text('Remove Security PIN', style: TextStyle(color: Colors.red)),
+                        title: const Text('Remove Security PIN',
+                            style: TextStyle(color: Colors.red)),
                         onTap: () async {
                           await lockService.removePin();
                           if (context.mounted) {

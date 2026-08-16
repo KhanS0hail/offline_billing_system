@@ -30,6 +30,16 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Patch Plugin compileSdkVersion to 36
+        run: |
+          find $HOME/.pub-cache -name "build.gradle" | while read f; do
+            sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 36/g' "$f"
+            sed -i 's/compileSdk = [0-9]*/compileSdk = 36/g' "$f"
+          done
+          find $HOME/.pub-cache -name "build.gradle.kts" | while read f; do
+            sed -i 's/compileSdk = [0-9]*/compileSdk = 36/g' "$f"
+          done
+
       - name: Build Android Update APK
         run: flutter build apk --debug
 

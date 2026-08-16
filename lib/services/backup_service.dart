@@ -43,21 +43,24 @@ class BackupService extends ChangeNotifier {
 
       // Create a timestamped copy for sharing
       final now = DateTime.now();
-      final timestamp = "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}";
+      final timestamp =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
       final backupFileName = 'billing_backup_$timestamp.db';
 
-      final tempDir = await getApplicationCacheDirectory();
+      final tempDir = await getTemporaryDirectory();
       final backupFile = await dbFile.copy(p.join(tempDir.path, backupFileName));
 
       // Share via system share sheet (WhatsApp, Email, Bluetooth, USB, etc.)
       await Share.shareXFiles(
         [XFile(backupFile.path)],
         subject: 'Billing System Database Backup',
-        text: 'Billing System backup file from $timestamp. Use "Import Backup" in the app to restore.',
+        text:
+            'Billing System backup from $timestamp. Use "Import Backup" in the app to restore.',
       );
 
       // Update last backup timestamp
-      final formattedDate = "${now.day}-${now.month}-${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}";
+      final formattedDate =
+          '${now.day}-${now.month}-${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyLastBackupTime, formattedDate);
       _lastBackupTimestamp = formattedDate;
@@ -83,7 +86,9 @@ class BackupService extends ChangeNotifier {
         allowMultiple: false,
       );
 
-      if (result == null || result.files.isEmpty || result.files.first.path == null) {
+      if (result == null ||
+          result.files.isEmpty ||
+          result.files.first.path == null) {
         _isBusy = false;
         notifyListeners();
         return false;
@@ -91,14 +96,13 @@ class BackupService extends ChangeNotifier {
 
       final selectedFile = File(result.files.first.path!);
 
-      // Validate it's a valid SQLite file (starts with "SQLite format 3")
+      // Validate SQLite header
       final bytes = await selectedFile.readAsBytes();
       if (bytes.length < 16) {
         _isBusy = false;
         notifyListeners();
         return false;
       }
-
       final header = String.fromCharCodes(bytes.sublist(0, 15));
       if (!header.startsWith('SQLite format 3')) {
         _isBusy = false;
@@ -106,22 +110,17 @@ class BackupService extends ChangeNotifier {
         return false;
       }
 
-      // Replace the current database with the backup
+      // Close DB, replace file, reopen
       final docDir = await getApplicationDocumentsDirectory();
       final dbPath = p.join(docDir.path, 'billing_system.db');
-
-      // Close existing DB connection before replacing
       await DatabaseHelper.instance.close();
-
-      // Copy backup over the current database
       await selectedFile.copy(dbPath);
-
-      // Re-open database connection
       await DatabaseHelper.instance.database;
 
       // Update timestamp
       final now = DateTime.now();
-      final formattedDate = "${now.day}-${now.month}-${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}";
+      final formattedDate =
+          '${now.day}-${now.month}-${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyLastBackupTime, formattedDate);
       _lastBackupTimestamp = formattedDate;
