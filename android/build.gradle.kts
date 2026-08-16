@@ -16,6 +16,15 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
+// Fix 2: Force all Android library plugins (file_picker, share_plus, etc.) to use compileSdk 36
+subprojects {
+    afterEvaluate {
+        extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.apply {
+            compileSdkVersion(36)
+        }
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
