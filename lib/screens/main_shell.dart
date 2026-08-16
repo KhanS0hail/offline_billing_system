@@ -47,7 +47,10 @@ class _MainShellState extends State<MainShell> {
         children: [
           if (isDesktop) _buildSidebar(themeProvider),
           Expanded(
-            child: _screens[_selectedIndex],
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: _screens,
+            ),
           ),
         ],
       ),
