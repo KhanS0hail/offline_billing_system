@@ -27,6 +27,8 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
     signingConfigs {
         create("fixedSigningKey") {
             keyAlias = "androiddebugkey"
