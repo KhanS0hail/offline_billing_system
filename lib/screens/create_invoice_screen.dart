@@ -341,9 +341,28 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   void _showEditItemDialog(BuildContext context, int index, InvoiceItem item) {
     final nameController = TextEditingController(text: item.productName);
     final sizeController = TextEditingController(text: item.size ?? '');
+
+    // Parse existing PCS count into number + unit
+    String initialPcsNum = '';
+    String selectedPcsUnit = 'Pcs';
+    final pcsUnitsList = ['Pcs', 'Nag', 'Bdl', 'Box', 'Bundle', 'Roll', 'Carton'];
+    if (item.pcsCount != null && item.pcsCount!.trim().isNotEmpty) {
+      final match = RegExp(r'^([\d.]+)\s*(.*)$').firstMatch(item.pcsCount!.trim());
+      if (match != null) {
+        initialPcsNum = match.group(1) ?? '';
+        final u = match.group(2)?.trim() ?? 'Pcs';
+        if (pcsUnitsList.contains(u)) {
+          selectedPcsUnit = u;
+        }
+      } else {
+        initialPcsNum = item.pcsCount!.trim();
+      }
+    }
+
+    final pcsNumController = TextEditingController(text: initialPcsNum);
     final qtyController = TextEditingController(text: item.quantity.toString());
     final priceController = TextEditingController(text: item.price.toString());
-    String selectedUnit = _availableUnits.contains(item.unit) ? item.unit : 'Pcs';
+    String selectedBillingUnit = _availableUnits.contains(item.unit) ? item.unit : 'Pcs';
 
     showDialog(
       context: context,
@@ -358,43 +377,94 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                   children: [
                     TextField(
                       controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Item Name *'),
+                      decoration: const InputDecoration(labelText: 'Item Name *', prefixIcon: Icon(Icons.inventory)),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: sizeController,
-                      decoration: const InputDecoration(labelText: 'Size (Optional, e.g. M, 10x12)'),
+                      decoration: const InputDecoration(labelText: 'Size (Optional, e.g. M, 10x12)', prefixIcon: Icon(Icons.straighten)),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
+
+                    // 1. PCS / Packaging Column (Number + Unit Selector)
                     Row(
                       children: [
                         Expanded(
+                          flex: 5,
                           child: TextField(
-                            controller: qtyController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(labelText: 'Quantity *'),
+                            controller: pcsNumController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: 'PCS Count (Optional)',
+                              hintText: 'e.g. 10',
+                              border: OutlineInputBorder(),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
+                          flex: 4,
                           child: DropdownButtonFormField<String>(
-                            value: selectedUnit,
-                            decoration: const InputDecoration(labelText: 'Unit (Pcs/Nag/Bdl)'),
-                            items: _availableUnits
+                            value: selectedPcsUnit,
+                            decoration: const InputDecoration(
+                              labelText: 'PCS Unit',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: pcsUnitsList
                                 .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                                 .toList(),
                             onChanged: (v) {
-                              if (v != null) setDialogState(() => selectedUnit = v);
+                              if (v != null) setDialogState(() => selectedPcsUnit = v);
                             },
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
+
+                    // 2. Billing Quantity & Unit Column (Number + Unit Selector)
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: TextField(
+                            controller: qtyController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Billed Qty *',
+                              hintText: 'e.g. 100',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 4,
+                          child: DropdownButtonFormField<String>(
+                            value: selectedBillingUnit,
+                            decoration: const InputDecoration(
+                              labelText: 'Billing Unit *',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _availableUnits
+                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) setDialogState(() => selectedBillingUnit = v);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: priceController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Rate / Price per Unit (₹) *'),
+                      decoration: const InputDecoration(
+                        labelText: 'Rate / Price per Unit (₹) *',
+                        prefixIcon: Icon(Icons.currency_rupee),
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ],
                 ),
@@ -405,14 +475,16 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                   onPressed: () {
                     final qty = int.tryParse(qtyController.text.trim()) ?? 1;
                     final price = double.tryParse(priceController.text.trim()) ?? item.price;
-                    final pcsFormatted = "$qty $selectedUnit";
+
+                    final rawPcsNum = pcsNumController.text.trim();
+                    final formattedPcs = rawPcsNum.isNotEmpty ? "$rawPcsNum $selectedPcsUnit" : null;
 
                     final updatedItem = item.copyWith(
                       productName: nameController.text.trim().isEmpty ? item.productName : nameController.text.trim(),
                       size: sizeController.text.trim().isEmpty ? null : sizeController.text.trim(),
-                      pcsCount: pcsFormatted,
+                      pcsCount: formattedPcs,
                       quantity: qty > 0 ? qty : 1,
-                      unit: selectedUnit,
+                      unit: selectedBillingUnit,
                       price: price,
                       amount: (qty > 0 ? qty : 1) * price,
                     );
@@ -731,16 +803,17 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         itemBuilder: (context, index) {
                           final item = invProvider.draftItems[index];
                           final sizeText = (item.size != null && item.size!.isNotEmpty) ? " | Size: ${item.size}" : "";
+                          final pcsText = (item.pcsCount != null && item.pcsCount!.isNotEmpty) ? " | PCS: ${item.pcsCount}" : "";
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
                               title: Text(
-                                '${index + 1}. ${item.productName}$sizeText',
+                                '${index + 1}. ${item.productName}$sizeText$pcsText',
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
-                                'Qty: ${item.quantity} ${item.unit} x ₹${item.price.toStringAsFixed(2)} = ₹${item.amount.toStringAsFixed(2)}',
+                                'Billed Qty: ${item.quantity} ${item.unit} x ₹${item.price.toStringAsFixed(2)} = ₹${item.amount.toStringAsFixed(2)}',
                                 style: const TextStyle(fontWeight: FontWeight.w500),
                               ),
                               trailing: Row(
