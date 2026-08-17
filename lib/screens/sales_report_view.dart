@@ -46,16 +46,59 @@ class _SalesReportViewState extends State<SalesReportView> {
   }
 
   DateTime? _parseInvoiceDate(String dateStr) {
+    if (dateStr.trim().isEmpty) return null;
+    final clean = dateStr.trim();
+
+    // 1. Try standard ISO parse (e.g. 2026-08-17)
     try {
-      final parts = dateStr.trim().split('-');
-      if (parts.length == 3) {
-        // DD-MM-YYYY
-        final day = int.parse(parts[0]);
-        final month = int.parse(parts[1]);
-        final year = int.parse(parts[2]);
+      final isoDate = DateTime.tryParse(clean);
+      if (isoDate != null) return isoDate;
+    } catch (_) {}
+
+    // 2. Try split with '-' or '/' or ' '
+    final delimiters = RegExp(r'[-/ ]');
+    final parts = clean.split(delimiters).where((p) => p.isNotEmpty).toList();
+    if (parts.length >= 3) {
+      int? day;
+      int? month;
+      int? year;
+
+      final monthsShort = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      final monthsFull = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december'
+      ];
+
+      // Case A: YYYY-MM-DD
+      if (parts[0].length == 4 && int.tryParse(parts[0]) != null) {
+        year = int.parse(parts[0]);
+        month = int.tryParse(parts[1]);
+        day = int.tryParse(parts[2]);
+      } else {
+        // Case B: DD-MM-YYYY or DD-MMM-YYYY
+        day = int.tryParse(parts[0]);
+
+        // Try parsing month as number
+        month = int.tryParse(parts[1]);
+        if (month == null) {
+          final mLower = parts[1].toLowerCase();
+          final sIdx = monthsShort.indexWhere((m) => mLower.startsWith(m));
+          if (sIdx != -1) {
+            month = sIdx + 1;
+          } else {
+            final fIdx = monthsFull.indexOf(mLower);
+            if (fIdx != -1) month = fIdx + 1;
+          }
+        }
+
+        year = int.tryParse(parts[2]);
+      }
+
+      if (day != null && month != null && year != null) {
+        if (year < 100) year += 2000;
         return DateTime(year, month, day);
       }
-    } catch (_) {}
+    }
     return null;
   }
 
