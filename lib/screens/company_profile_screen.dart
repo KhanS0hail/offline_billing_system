@@ -38,38 +38,67 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
   String? _signatureBase64;
 
   final ImagePicker _picker = ImagePicker();
+  int? _lastLoadedCompanyId;
+  bool _hasPopulatedFromProvider = false;
 
   @override
   void initState() {
     super.initState();
-    _initControllers();
+    _initBlankControllers();
   }
 
-  void _initControllers() {
-    final provider = Provider.of<CompanyProvider>(context, listen: false);
-    final comp = provider.company;
+  void _initBlankControllers() {
+    _nameController = TextEditingController();
+    _taglineController = TextEditingController();
+    _phoneController = TextEditingController();
+    _emailController = TextEditingController();
+    _addressController = TextEditingController();
+    _gstController = TextEditingController();
+    _stateCodeController = TextEditingController();
 
-    _nameController = TextEditingController(text: comp?.name ?? '');
-    _taglineController = TextEditingController(text: comp?.tagline ?? '');
-    _phoneController = TextEditingController(text: comp?.phone ?? '');
-    _emailController = TextEditingController(text: comp?.email ?? '');
-    _addressController = TextEditingController(text: comp?.address ?? '');
-    _gstController = TextEditingController(text: comp?.gstNumber ?? '');
-    _stateCodeController = TextEditingController(text: comp?.stateCode ?? '');
+    _bankNameController = TextEditingController();
+    _accountNoController = TextEditingController();
+    _ifscController = TextEditingController();
+    _branchController = TextEditingController();
+    _upiIdController = TextEditingController();
+    _paymentDurationController = TextEditingController(text: '15');
 
-    _bankNameController = TextEditingController(text: comp?.bankName ?? '');
-    _accountNoController = TextEditingController(text: comp?.accountNumber ?? '');
-    _ifscController = TextEditingController(text: comp?.ifscCode ?? '');
-    _branchController = TextEditingController(text: comp?.bankBranch ?? '');
-    _upiIdController = TextEditingController(text: comp?.upiId ?? '');
-    _paymentDurationController = TextEditingController(text: comp?.paymentDurationDays.toString() ?? '15');
+    _tcControllers = [
+      TextEditingController(text: 'Subject to Mumbai jurisdiction.'),
+      TextEditingController(text: 'Goods once sold will not be taken back.'),
+      TextEditingController(text: 'Our responsibility ceases as soon as the goods leave our premises.'),
+      TextEditingController(text: 'Interest @ 24% P.A. will be charged on all overdue payments.'),
+    ];
+  }
 
-    _logoBase64 = comp?.logoBase64;
-    _signatureBase64 = comp?.signatureBase64;
+  void _populateFromCompany(Company? comp) {
+    if (comp == null) return;
+
+    _nameController.text = comp.name ?? '';
+    _taglineController.text = comp.tagline ?? '';
+    _phoneController.text = comp.phone ?? '';
+    _emailController.text = comp.email ?? '';
+    _addressController.text = comp.address ?? '';
+    _gstController.text = comp.gstNumber ?? '';
+    _stateCodeController.text = comp.stateCode ?? '';
+
+    _bankNameController.text = comp.bankName ?? '';
+    _accountNoController.text = comp.accountNumber ?? '';
+    _ifscController.text = comp.ifscCode ?? '';
+    _branchController.text = comp.bankBranch ?? '';
+    _upiIdController.text = comp.upiId ?? '';
+    _paymentDurationController.text = comp.paymentDurationDays.toString();
+
+    _logoBase64 = comp.logoBase64;
+    _signatureBase64 = comp.signatureBase64;
 
     // Parse T&C items into list of controllers
+    for (var c in _tcControllers) {
+      c.dispose();
+    }
     _tcControllers = [];
-    if (comp?.termsAndConditions != null && comp!.termsAndConditions!.trim().isNotEmpty) {
+
+    if (comp.termsAndConditions != null && comp.termsAndConditions!.trim().isNotEmpty) {
       final lines = comp.termsAndConditions!.trim().split('\n');
       for (var l in lines) {
         final trimmed = l.trim().replaceFirst(RegExp(r'^\d+[\.\)\]]\s*'), '');
@@ -86,6 +115,18 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
         TextEditingController(text: 'Our responsibility ceases as soon as the goods leave our premises.'),
         TextEditingController(text: 'Interest @ 24% P.A. will be charged on all overdue payments.'),
       ];
+    }
+    _lastLoadedCompanyId = comp.id;
+    _hasPopulatedFromProvider = true;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = Provider.of<CompanyProvider>(context);
+    final comp = provider.company;
+    if (comp != null && (!_hasPopulatedFromProvider || comp.id != _lastLoadedCompanyId)) {
+      _populateFromCompany(comp);
     }
   }
 
@@ -164,7 +205,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
 
       final updatedCompany = Company(
         id: provider.company?.id,
-        name: _nameController.text.trim(),
+        name: _nameController.text.trim().isEmpty ? 'My Company' : _nameController.text.trim(),
         tagline: _taglineController.text.trim(),
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
@@ -183,6 +224,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
       );
 
       await provider.saveCompany(updatedCompany);
+      _populateFromCompany(updatedCompany);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -210,7 +252,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
       ),
       body: Consumer<CompanyProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoading) {
+          if (provider.isLoading && !_hasPopulatedFromProvider) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -366,7 +408,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  _buildSectionHeader(Icons.cloud_sync_rounded, "Cloud Sync & App Security"),
+                  _buildSectionHeader(Icons.security_rounded, "Database Backup & Security"),
                   const SizedBox(height: 12),
                   Card(
                     elevation: 0,
@@ -378,8 +420,8 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                       leading: const CircleAvatar(
                         child: Icon(Icons.shield_outlined),
                       ),
-                      title: const Text('Google Drive Backup & PIN Lock', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Sync database to cloud and set passcode lock'),
+                      title: const Text('Database Backup & PIN Lock', style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: const Text('Export, import & share offline database backup and manage PIN lock'),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         Navigator.push(

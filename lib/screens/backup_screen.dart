@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/backup_service.dart';
 import '../services/app_lock_service.dart';
+import '../providers/company_provider.dart';
+import '../providers/invoice_provider.dart';
+import '../providers/customer_provider.dart';
+import '../providers/product_provider.dart';
 import 'pin_lock_screen.dart';
 
 class BackupScreen extends StatefulWidget {
@@ -112,7 +116,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Share your database via WhatsApp, Email, Google Drive, USB, or save to Files app.',
+                      'Share your database via WhatsApp, Email, USB, or save to your device storage.',
                       style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
 
@@ -148,10 +152,17 @@ class _BackupScreenState extends State<BackupScreen> {
                                 if (confirm == true) {
                                   final success = await backupService.importBackup();
                                   if (context.mounted) {
+                                    if (success) {
+                                      // Reload all app providers with newly restored DB
+                                      Provider.of<CompanyProvider>(context, listen: false).loadCompany();
+                                      Provider.of<InvoiceProvider>(context, listen: false).loadInvoices();
+                                      Provider.of<CustomerProvider>(context, listen: false).loadCustomers();
+                                      Provider.of<ProductProvider>(context, listen: false).loadProducts();
+                                    }
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(success
-                                            ? 'Database restored! Restart the app to see updated data.'
+                                            ? 'Database restored successfully! All data updated.'
                                             : 'Restore failed. Please select a valid .db backup file.'),
                                       ),
                                     );

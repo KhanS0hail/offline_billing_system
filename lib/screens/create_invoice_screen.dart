@@ -19,6 +19,7 @@ class CreateInvoiceScreen extends StatefulWidget {
 }
 
 class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
+  late TextEditingController _invoiceNumberController;
   late TextEditingController _challanController;
   late TextEditingController _vehicleController;
   late TextEditingController _transportModeController;
@@ -27,10 +28,15 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   late TextEditingController _receivedController;
   late TextEditingController _notesController;
 
+  final List<String> _availableUnits = [
+    'Pcs', 'Nag', 'Bdl', 'Box', 'Kg', 'Gm', 'Mtr', 'Ltr', 'Set', 'Pack'
+  ];
+
   @override
   void initState() {
     super.initState();
     final invProvider = Provider.of<InvoiceProvider>(context, listen: false);
+    _invoiceNumberController = TextEditingController(text: invProvider.nextInvoiceNumber);
     _challanController = TextEditingController(text: invProvider.challanNumber ?? '');
     _vehicleController = TextEditingController(text: invProvider.vehicleNumber);
     _transportModeController = TextEditingController(text: invProvider.transportMode);
@@ -42,6 +48,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
 
   @override
   void dispose() {
+    _invoiceNumberController.dispose();
     _challanController.dispose();
     _vehicleController.dispose();
     _transportModeController.dispose();
@@ -70,7 +77,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Customer / Business Name', prefixIcon: Icon(Icons.person)),
+                  decoration: const InputDecoration(labelText: 'Customer / Business Name *', prefixIcon: Icon(Icons.person)),
                 ),
                 const SizedBox(height: 8),
                 TextField(
@@ -108,6 +115,8 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
+                if (nameController.text.trim().isEmpty) return;
+
                 final newCust = Customer(
                   name: nameController.text.trim(),
                   phone: phoneController.text.trim(),
@@ -137,6 +146,116 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     );
   }
 
+  void _showQuickAddProductDialog(BuildContext context, {required VoidCallback onAdded}) {
+    final nameController = TextEditingController();
+    final priceController = TextEditingController();
+    final hsnController = TextEditingController();
+    String selectedUnit = 'Pcs';
+    double selectedGst = 18.0;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Add New Product / Item'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Product / Item Name *', prefixIcon: Icon(Icons.inventory_2)),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: priceController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(labelText: 'Price / Rate (₹) *', prefixIcon: Icon(Icons.currency_rupee)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: selectedUnit,
+                            decoration: const InputDecoration(labelText: 'Unit'),
+                            items: _availableUnits.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                            onChanged: (v) {
+                              if (v != null) setDialogState(() => selectedUnit = v);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: hsnController,
+                            decoration: const InputDecoration(labelText: 'HSN Code', prefixIcon: Icon(Icons.code)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<double>(
+                            value: selectedGst,
+                            decoration: const InputDecoration(labelText: 'GST Rate'),
+                            items: [0.0, 5.0, 12.0, 18.0, 28.0]
+                                .map((g) => DropdownMenuItem(value: g, child: Text('${g.toStringAsFixed(0)}%')))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) setDialogState(() => selectedGst = v);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.trim().isEmpty) return;
+                    final price = double.tryParse(priceController.text.trim()) ?? 0.0;
+
+                    final newProduct = Product(
+                      name: nameController.text.trim(),
+                      price: price,
+                      unit: selectedUnit,
+                      hsnCode: hsnController.text.trim(),
+                      gstRate: selectedGst,
+                    );
+
+                    final prodProvider = Provider.of<ProductProvider>(context, listen: false);
+                    await prodProvider.addProduct(newProduct);
+
+                    // Add directly to draft
+                    if (context.mounted) {
+                      Provider.of<InvoiceProvider>(context, listen: false).addProductToDraft(newProduct);
+                    }
+
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx); // Close add product dialog
+                      onAdded();          // Close picker dialog
+                    }
+                  },
+                  child: const Text('Save & Add to Invoice'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showProductPickerDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -145,7 +264,19 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
           builder: (context, prodProvider, child) {
             final products = prodProvider.products;
             return AlertDialog(
-              title: const Text('Select Product from Catalog'),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Select Product'),
+                  TextButton.icon(
+                    onPressed: () => _showQuickAddProductDialog(context, onAdded: () {
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    }),
+                    icon: const Icon(Icons.add_circle, size: 18),
+                    label: const Text('+ New Item'),
+                  ),
+                ],
+              ),
               content: SizedBox(
                 width: double.maxFinite,
                 height: 400,
@@ -162,14 +293,29 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                     const SizedBox(height: 12),
                     Expanded(
                       child: products.isEmpty
-                          ? const Center(child: Text('No products found.'))
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text('No products found.'),
+                                  const SizedBox(height: 8),
+                                  ElevatedButton.icon(
+                                    onPressed: () => _showQuickAddProductDialog(context, onAdded: () {
+                                      if (ctx.mounted) Navigator.pop(ctx);
+                                    }),
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Create New Product'),
+                                  ),
+                                ],
+                              ),
+                            )
                           : ListView.builder(
                               itemCount: products.length,
                               itemBuilder: (context, index) {
                                 final prod = products[index];
                                 return ListTile(
                                   title: Text(prod.name ?? 'Unnamed Product', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text('HSN: ${prod.hsnCode ?? "-"} | Rate: ₹${prod.price?.toStringAsFixed(2) ?? "0.00"}'),
+                                  subtitle: Text('HSN: ${prod.hsnCode ?? "-"} | Rate: ₹${prod.price?.toStringAsFixed(2) ?? "0.00"} / ${prod.unit ?? "Pcs"}'),
                                   trailing: const Icon(Icons.add_circle_outline, color: Colors.blue),
                                   onTap: () {
                                     Provider.of<InvoiceProvider>(context, listen: false).addProductToDraft(prod);
@@ -195,10 +341,9 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   void _showEditItemDialog(BuildContext context, int index, InvoiceItem item) {
     final nameController = TextEditingController(text: item.productName);
     final sizeController = TextEditingController(text: item.size ?? '');
-    final pcsCountController = TextEditingController(text: item.pcsCount ?? '');
     final qtyController = TextEditingController(text: item.quantity.toString());
     final priceController = TextEditingController(text: item.price.toString());
-    String selectedUnit = item.unit;
+    String selectedUnit = _availableUnits.contains(item.unit) ? item.unit : 'Pcs';
 
     showDialog(
       context: context,
@@ -213,25 +358,12 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                   children: [
                     TextField(
                       controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Item Name'),
+                      decoration: const InputDecoration(labelText: 'Item Name *'),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: sizeController,
-                            decoration: const InputDecoration(labelText: 'Size (e.g. M, 10x12)'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: pcsCountController,
-                            decoration: const InputDecoration(labelText: 'Pcs/Nag/BDL (e.g. 10 Pcs, 2 BDL)'),
-                          ),
-                        ),
-                      ],
+                    TextField(
+                      controller: sizeController,
+                      decoration: const InputDecoration(labelText: 'Size (Optional, e.g. M, 10x12)'),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -240,15 +372,15 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                           child: TextField(
                             controller: qtyController,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(labelText: 'Quantity'),
+                            decoration: const InputDecoration(labelText: 'Quantity *'),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: ['Pcs', 'BDL', 'Kg', 'Gm', 'Mtr', 'Ltr', 'Box', 'Set', 'Pack'].contains(selectedUnit) ? selectedUnit : 'Pcs',
-                            decoration: const InputDecoration(labelText: 'Unit'),
-                            items: ['Pcs', 'BDL', 'Kg', 'Gm', 'Mtr', 'Ltr', 'Box', 'Set', 'Pack']
+                            value: selectedUnit,
+                            decoration: const InputDecoration(labelText: 'Unit (Pcs/Nag/Bdl)'),
+                            items: _availableUnits
                                 .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                                 .toList(),
                             onChanged: (v) {
@@ -262,7 +394,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                     TextField(
                       controller: priceController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Rate / Price (₹)'),
+                      decoration: const InputDecoration(labelText: 'Rate / Price per Unit (₹) *'),
                     ),
                   ],
                 ),
@@ -272,17 +404,20 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                 ElevatedButton(
                   onPressed: () {
                     final qty = int.tryParse(qtyController.text.trim()) ?? 1;
-                    final price = double.tryParse(priceController.text.trim()) ?? 0.0;
-                    final updated = item.copyWith(
-                      productName: nameController.text.trim(),
-                      size: sizeController.text.trim(),
-                      pcsCount: pcsCountController.text.trim(),
-                      quantity: qty,
-                      price: price,
+                    final price = double.tryParse(priceController.text.trim()) ?? item.price;
+                    final pcsFormatted = "$qty $selectedUnit";
+
+                    final updatedItem = item.copyWith(
+                      productName: nameController.text.trim().isEmpty ? item.productName : nameController.text.trim(),
+                      size: sizeController.text.trim().isEmpty ? null : sizeController.text.trim(),
+                      pcsCount: pcsFormatted,
+                      quantity: qty > 0 ? qty : 1,
                       unit: selectedUnit,
-                      amount: qty * price,
+                      price: price,
+                      amount: (qty > 0 ? qty : 1) * price,
                     );
-                    Provider.of<InvoiceProvider>(context, listen: false).updateDraftItem(index, updated);
+
+                    Provider.of<InvoiceProvider>(context, listen: false).updateDraftItem(index, updatedItem);
                     Navigator.pop(ctx);
                   },
                   child: const Text('Save Changes'),
@@ -301,7 +436,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Invoice'),
+        title: const Text('Create New Invoice'),
       ),
       body: Consumer<InvoiceProvider>(
         builder: (context, invProvider, child) {
@@ -309,12 +444,13 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
           final amountInWords = NumberToWords.convert(totals.grandTotal);
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. INVOICE TYPE TOGGLE (TAX INVOICE vs PROFORMA INVOICE)
-                Center(
+                // 1. INVOICE TYPE SELECTOR (TAX INVOICE vs PROFORMA INVOICE)
+                SizedBox(
+                  width: double.infinity,
                   child: SegmentedButton<String>(
                     segments: const [
                       ButtonSegment(value: 'TAX INVOICE', label: Text('Tax Invoice'), icon: Icon(Icons.receipt_long)),
@@ -328,7 +464,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 2. HEADER META CARD (WITH DELIVERY DATE & VEHICLE / TRANSPORT FIELDS)
+                // 2. HEADER META CARD (WITH EDITABLE INVOICE NUMBER, DATES & TRANSPORT)
                 Card(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: Padding(
@@ -336,16 +472,44 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Editable Invoice Number Row
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Invoice #: ${invProvider.nextInvoiceNumber}',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _invoiceNumberController,
+                                decoration: InputDecoration(
+                                  labelText: 'Invoice Number',
+                                  prefixIcon: const Icon(Icons.tag_rounded),
+                                  border: const OutlineInputBorder(),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.refresh, size: 20),
+                                    tooltip: 'Reset to Auto Next Number',
+                                    onPressed: () async {
+                                      await invProvider.resetToAutoInvoiceNumber();
+                                      _invoiceNumberController.text = invProvider.nextInvoiceNumber;
+                                    },
+                                  ),
+                                ),
+                                onChanged: (v) => invProvider.setInvoiceNumber(v),
+                              ),
                             ),
-                            Text(
-                              invProvider.invoiceType,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                              ),
+                              child: Text(
+                                invProvider.invoiceType,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -371,7 +535,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                     context: context,
                                     initialDate: invProvider.invoiceDate,
                                     firstDate: DateTime(2020),
-                                    lastDate: DateTime(2030),
+                                    lastDate: DateTime(2035),
                                   );
                                   if (picked != null) invProvider.setInvoiceDate(picked);
                                 },
@@ -393,7 +557,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                     context: context,
                                     initialDate: invProvider.deliveryDate,
                                     firstDate: DateTime(2020),
-                                    lastDate: DateTime(2030),
+                                    lastDate: DateTime(2035),
                                   );
                                   if (picked != null) invProvider.setDeliveryDate(picked);
                                 },
@@ -411,7 +575,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                     context: context,
                                     initialDate: invProvider.dueDate,
                                     firstDate: DateTime(2020),
-                                    lastDate: DateTime(2030),
+                                    lastDate: DateTime(2035),
                                   );
                                   if (picked != null) invProvider.setDueDate(picked);
                                 },
@@ -567,17 +731,17 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         itemBuilder: (context, index) {
                           final item = invProvider.draftItems[index];
                           final sizeText = (item.size != null && item.size!.isNotEmpty) ? " | Size: ${item.size}" : "";
-                          final pcsText = (item.pcsCount != null && item.pcsCount!.isNotEmpty) ? " | Pcs/Bdl: ${item.pcsCount}" : "";
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
                               title: Text(
-                                '${index + 1}. ${item.productName}$sizeText$pcsText',
+                                '${index + 1}. ${item.productName}$sizeText',
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
                                 'Qty: ${item.quantity} ${item.unit} x ₹${item.price.toStringAsFixed(2)} = ₹${item.amount.toStringAsFixed(2)}',
+                                style: const TextStyle(fontWeight: FontWeight.w500),
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,

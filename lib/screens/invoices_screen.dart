@@ -217,7 +217,7 @@ class InvoicesScreen extends StatelessWidget {
                           )
                         : ListView.builder(
                             itemCount: invoices.length,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
                             itemBuilder: (context, index) {
                               final inv = invoices[index];
                               final isPaid = inv.status == 'Paid';

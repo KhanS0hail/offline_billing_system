@@ -4,6 +4,7 @@ import '../providers/invoice_provider.dart';
 import '../providers/customer_provider.dart';
 import 'customer_ledger_screen.dart';
 import 'gst_report_screen.dart';
+import 'sales_report_view.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
@@ -11,13 +12,16 @@ class ReportsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Reports & Analytics Hub'),
           bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
               Tab(icon: Icon(Icons.analytics_rounded), text: 'Analytics'),
+              Tab(icon: Icon(Icons.point_of_sale_rounded), text: 'Sales Reports'),
               Tab(icon: Icon(Icons.menu_book_rounded), text: 'Customer Ledgers'),
               Tab(icon: Icon(Icons.receipt_long_rounded), text: 'GST Tax Reports'),
             ],
@@ -26,6 +30,7 @@ class ReportsScreen extends StatelessWidget {
         body: const TabBarView(
           children: [
             _AnalyticsOverviewTab(),
+            SalesReportView(),
             CustomerLedgerScreen(),
             GstReportScreen(),
           ],

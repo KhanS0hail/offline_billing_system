@@ -117,6 +117,16 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setInvoiceNumber(String num) {
+    _nextInvoiceNumber = num;
+    notifyListeners();
+  }
+
+  Future<void> resetToAutoInvoiceNumber() async {
+    _nextInvoiceNumber = await DatabaseHelper.instance.generateNextInvoiceNumber();
+    notifyListeners();
+  }
+
   void prepareEditInvoice(Invoice invoice, List<Customer> customers) {
     _editingInvoiceId = invoice.id;
     _invoiceType = invoice.invoiceType;

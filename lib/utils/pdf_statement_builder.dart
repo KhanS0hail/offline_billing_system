@@ -360,6 +360,237 @@ class PdfStatementBuilder {
     return pdf.save();
   }
 
+  /// Builds a Comprehensive Period Sales Report PDF (Monthly, Yearly, Custom Range)
+  static Future<Uint8List> buildSalesReport({
+    required Company? company,
+    required String periodTitle,
+    required List<Invoice> invoices,
+    required double totalSales,
+    required double totalTaxable,
+    required double totalCgst,
+    required double totalSgst,
+    required double totalIgst,
+    required double totalReceived,
+    required double totalOutstanding,
+    required Map<String, Map<String, dynamic>> productSalesMap,
+    required Map<String, Map<String, dynamic>> customerSalesMap,
+  }) async {
+    final pdf = pw.Document();
+
+    pw.MemoryImage? logoImage;
+    if (company?.logoBase64 != null && company!.logoBase64!.isNotEmpty) {
+      try {
+        logoImage = pw.MemoryImage(base64Decode(company.logoBase64!));
+      } catch (_) {}
+    }
+
+    final double totalTax = totalCgst + totalSgst + totalIgst;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return [
+            // Title Header
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Expanded(
+                  child: pw.Row(
+                    children: [
+                      if (logoImage != null)
+                        pw.Container(
+                          height: 45,
+                          width: 65,
+                          margin: const pw.EdgeInsets.only(right: 10),
+                          child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+                        ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(company?.name ?? 'Company', style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
+                          if (company?.gstNumber != null && company!.gstNumber!.isNotEmpty)
+                            pw.Text('GSTIN: ${company.gstNumber}', style: const pw.TextStyle(fontSize: 8.5)),
+                          if (company?.phone != null && company!.phone!.isNotEmpty)
+                            pw.Text('Phone: ${company.phone}', style: const pw.TextStyle(fontSize: 8.5)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text('SALES PERFORMANCE REPORT', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
+                    pw.Text(periodTitle, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Generated: ${DateTime.now().day}-${DateTime.now().month}-${DateTime.now().year}', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700)),
+                  ],
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 8),
+            pw.Divider(thickness: 1, color: PdfColors.black),
+            pw.SizedBox(height: 8),
+
+            // Key Metrics Summary Table
+            pw.Text('REVENUE & FINANCIAL SUMMARY', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    _th('Total Invoices'),
+                    _th('Total Billed Sales'),
+                    _th('Taxable Base'),
+                    _th('Total Tax (GST)'),
+                    _th('Total Received'),
+                    _th('Outstanding Due'),
+                  ],
+                ),
+                pw.TableRow(
+                  children: [
+                    _td('${invoices.length}', align: pw.TextAlign.center, isBold: true),
+                    _td('Rs ${totalSales.toStringAsFixed(2)}', align: pw.TextAlign.right, isBold: true),
+                    _td('Rs ${totalTaxable.toStringAsFixed(2)}', align: pw.TextAlign.right),
+                    _td('Rs ${totalTax.toStringAsFixed(2)}', align: pw.TextAlign.right),
+                    _td('Rs ${totalReceived.toStringAsFixed(2)}', align: pw.TextAlign.right),
+                    _td('Rs ${totalOutstanding.toStringAsFixed(2)}', align: pw.TextAlign.right, isBold: true),
+                  ],
+                ),
+              ],
+            ),
+
+            // Product-Wise Sales Breakdown
+            if (productSalesMap.isNotEmpty) ...[
+              pw.SizedBox(height: 14),
+              pw.Text('PRODUCT-WISE SALES SUMMARY', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 4),
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(3),
+                  1: const pw.FlexColumnWidth(1.5),
+                  2: const pw.FlexColumnWidth(1.5),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                    children: [
+                      _th('Product Name'),
+                      _th('Quantity Sold'),
+                      _th('Total Revenue (Rs)'),
+                    ],
+                  ),
+                  ...productSalesMap.entries.map((e) {
+                    final data = e.value;
+                    return pw.TableRow(
+                      children: [
+                        _td(e.key, isBold: true),
+                        _td('${data['qty']} ${data['unit'] ?? ""}', align: pw.TextAlign.center),
+                        _td((data['revenue'] as double).toStringAsFixed(2), align: pw.TextAlign.right),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+            ],
+
+            // Customer-Wise Sales Breakdown
+            if (customerSalesMap.isNotEmpty) ...[
+              pw.SizedBox(height: 14),
+              pw.Text('CUSTOMER-WISE SALES SUMMARY', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 4),
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(2.5),
+                  1: const pw.FlexColumnWidth(1),
+                  2: const pw.FlexColumnWidth(1.5),
+                  3: const pw.FlexColumnWidth(1.5),
+                  4: const pw.FlexColumnWidth(1.5),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                    children: [
+                      _th('Customer Name'),
+                      _th('Invoices'),
+                      _th('Total Billed (Rs)'),
+                      _th('Received (Rs)'),
+                      _th('Balance Due (Rs)'),
+                    ],
+                  ),
+                  ...customerSalesMap.entries.map((e) {
+                    final data = e.value;
+                    return pw.TableRow(
+                      children: [
+                        _td(e.key, isBold: true),
+                        _td('${data['count']}', align: pw.TextAlign.center),
+                        _td((data['billed'] as double).toStringAsFixed(2), align: pw.TextAlign.right),
+                        _td((data['received'] as double).toStringAsFixed(2), align: pw.TextAlign.right),
+                        _td((data['balance'] as double).toStringAsFixed(2), align: pw.TextAlign.right, isBold: (data['balance'] as double) > 0),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+            ],
+
+            // Invoice Breakdown Schedule
+            pw.SizedBox(height: 14),
+            pw.Text('INVOICES SCHEDULE (${invoices.length} Records)', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(1.1),
+                1: const pw.FlexColumnWidth(1.1),
+                2: const pw.FlexColumnWidth(2.2),
+                3: const pw.FlexColumnWidth(1.1),
+                4: const pw.FlexColumnWidth(1.2),
+                5: const pw.FlexColumnWidth(1.1),
+                6: const pw.FlexColumnWidth(1.3),
+              },
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    _th('Invoice #'),
+                    _th('Date'),
+                    _th('Customer'),
+                    _th('Status'),
+                    _th('Taxable (Rs)'),
+                    _th('Tax (Rs)'),
+                    _th('Total (Rs)'),
+                  ],
+                ),
+                ...invoices.map((inv) {
+                  return pw.TableRow(
+                    children: [
+                      _td(inv.invoiceNumber, isBold: true),
+                      _td(inv.date),
+                      _td(inv.customerName ?? 'Cash'),
+                      _td(inv.status),
+                      _td(inv.taxableBase.toStringAsFixed(2), align: pw.TextAlign.right),
+                      _td((inv.cgstTotal + inv.sgstTotal + inv.igstTotal).toStringAsFixed(2), align: pw.TextAlign.right),
+                      _td(inv.grandTotal.toStringAsFixed(2), align: pw.TextAlign.right, isBold: true),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ];
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
   static pw.Widget _th(String text, {pw.TextAlign align = pw.TextAlign.left}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.all(4),

@@ -184,7 +184,7 @@ class CustomersScreen extends StatelessWidget {
                           )
                         : ListView.builder(
                             itemCount: customers.length,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
                             itemBuilder: (context, index) {
                               final cust = customers[index];
                               return Card(

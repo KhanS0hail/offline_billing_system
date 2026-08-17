@@ -193,7 +193,7 @@ class ProductsScreen extends StatelessWidget {
                           )
                         : ListView.builder(
                             itemCount: products.length,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
                             itemBuilder: (context, index) {
                               final prod = products[index];
                               return Card(
