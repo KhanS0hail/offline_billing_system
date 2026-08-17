@@ -195,17 +195,28 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
 
   void _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      final provider = Provider.of<CompanyProvider>(context, listen: false);
-
-      // Join itemized T&C list into multiline string
-      final tcString = _tcControllers
+      // Check for at least 1 T&C clause
+      final validTc = _tcControllers
           .map((c) => c.text.trim())
           .where((t) => t.isNotEmpty)
-          .join('\n');
+          .toList();
+
+      if (validTc.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please add at least 1 Terms & Conditions clause.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final provider = Provider.of<CompanyProvider>(context, listen: false);
+      final tcString = validTc.join('\n');
 
       final updatedCompany = Company(
         id: provider.company?.id,
-        name: _nameController.text.trim().isEmpty ? 'My Company' : _nameController.text.trim(),
+        name: _nameController.text.trim(),
         tagline: _taglineController.text.trim(),
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
@@ -277,7 +288,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  _buildTextField(_nameController, 'Business / Company Name', Icons.store),
+                  _buildTextField(_nameController, 'Business / Company Name', Icons.store, isRequired: true),
                   const SizedBox(height: 12),
                   _buildTextField(_taglineController, 'Tagline / Slogan', Icons.subtitles),
                   const SizedBox(height: 12),
@@ -289,13 +300,13 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildTextField(_addressController, 'Full Business Address', Icons.location_on, maxLines: 2),
+                  _buildTextField(_addressController, 'Full Business Address', Icons.location_on, maxLines: 2, isRequired: true),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildTextField(_gstController, 'GSTIN Number', Icons.verified)),
+                      Expanded(child: _buildTextField(_gstController, 'GSTIN Number', Icons.verified, isRequired: true)),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildTextField(_stateCodeController, 'State Code (e.g. 27)', Icons.map)),
+                      Expanded(child: _buildTextField(_stateCodeController, 'State Code (e.g. 27)', Icons.map, isRequired: true)),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -304,17 +315,17 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildTextField(_bankNameController, 'Bank Name', Icons.account_balance)),
+                      Expanded(child: _buildTextField(_bankNameController, 'Bank Name', Icons.account_balance, isRequired: true)),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildTextField(_branchController, 'Bank Branch', Icons.location_city)),
+                      Expanded(child: _buildTextField(_branchController, 'Bank Branch', Icons.location_city, isRequired: true)),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildTextField(_accountNoController, 'Account Number', Icons.numbers)),
+                      Expanded(child: _buildTextField(_accountNoController, 'Account Number', Icons.numbers, isRequired: true)),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildTextField(_ifscController, 'IFSC Code', Icons.code)),
+                      Expanded(child: _buildTextField(_ifscController, 'IFSC Code', Icons.code, isRequired: true)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -558,13 +569,22 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     IconData icon, {
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
+    bool isRequired = false,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      validator: isRequired
+          ? (value) {
+              if (value == null || value.trim().isEmpty) {
+                return '$label is required';
+              }
+              return null;
+            }
+          : null,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: isRequired ? '$label *' : label,
         prefixIcon: Icon(icon),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

@@ -7,6 +7,7 @@ class ProductsScreen extends StatelessWidget {
   const ProductsScreen({super.key});
 
   void _showProductDialog(BuildContext context, {Product? product}) {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: product?.name ?? '');
     final descriptionController = TextEditingController(text: product?.description ?? '');
     final hsnController = TextEditingController(text: product?.hsnCode ?? '');
@@ -25,68 +26,79 @@ class ProductsScreen extends StatelessWidget {
             return AlertDialog(
               title: Text(isEditing ? 'Edit Product' : 'Add New Product'),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Item / Product Name', prefixIcon: Icon(Icons.inventory_2)),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(labelText: 'Description / Specs', prefixIcon: Icon(Icons.description)),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: hsnController,
-                            decoration: const InputDecoration(labelText: 'HSN / SAC Code', prefixIcon: Icon(Icons.qr_code)),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Product name is required' : null,
+                        decoration: const InputDecoration(labelText: 'Item / Product Name *', prefixIcon: Icon(Icons.inventory_2)),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: hsnController,
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'HSN code is required' : null,
+                              decoration: const InputDecoration(labelText: 'HSN / SAC Code *', prefixIcon: Icon(Icons.qr_code)),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedUnit,
-                            decoration: const InputDecoration(labelText: 'Unit'),
-                            items: ['Pcs', 'Kg', 'Gm', 'Mtr', 'Ltr', 'Box', 'Set', 'Pack']
-                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                                .toList(),
-                            onChanged: (val) {
-                              if (val != null) setDialogState(() => selectedUnit = val);
-                            },
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedUnit,
+                              decoration: const InputDecoration(labelText: 'Unit'),
+                              items: ['Pcs', 'Kg', 'Gm', 'Mtr', 'Ltr', 'Box', 'Set', 'Pack']
+                                  .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) setDialogState(() => selectedUnit = val);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: priceController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(labelText: 'Selling Price (₹)', prefixIcon: Icon(Icons.currency_rupee)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: priceController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return 'Price is required';
+                                final numVal = double.tryParse(v.trim());
+                                if (numVal == null || numVal < 0) return 'Enter valid price';
+                                return null;
+                              },
+                              decoration: const InputDecoration(labelText: 'Selling Price (₹) *', prefixIcon: Icon(Icons.currency_rupee)),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<double>(
-                            value: selectedGst,
-                            decoration: const InputDecoration(labelText: 'GST %'),
-                            items: [0.0, 5.0, 12.0, 18.0, 28.0]
-                                .map((g) => DropdownMenuItem(value: g, child: Text('${g.toStringAsFixed(0)}%')))
-                                .toList(),
-                            onChanged: (val) {
-                              if (val != null) setDialogState(() => selectedGst = val);
-                            },
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: DropdownButtonFormField<double>(
+                              value: selectedGst,
+                              decoration: const InputDecoration(labelText: 'GST %'),
+                              items: [0.0, 5.0, 12.0, 18.0, 28.0]
+                                  .map((g) => DropdownMenuItem(value: g, child: Text('${g.toStringAsFixed(0)}%')))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) setDialogState(() => selectedGst = val);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(labelText: 'Description / Specs (Optional)', prefixIcon: Icon(Icons.description)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -96,24 +108,26 @@ class ProductsScreen extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final newProd = Product(
-                      id: product?.id,
-                      name: nameController.text.trim(),
-                      description: descriptionController.text.trim(),
-                      hsnCode: hsnController.text.trim(),
-                      unit: selectedUnit,
-                      price: double.tryParse(priceController.text.trim()),
-                      gstRate: selectedGst,
-                    );
+                    if (formKey.currentState!.validate()) {
+                      final newProd = Product(
+                        id: product?.id,
+                        name: nameController.text.trim(),
+                        description: descriptionController.text.trim(),
+                        hsnCode: hsnController.text.trim(),
+                        unit: selectedUnit,
+                        price: double.tryParse(priceController.text.trim()),
+                        gstRate: selectedGst,
+                      );
 
-                    final provider = Provider.of<ProductProvider>(context, listen: false);
-                    if (isEditing) {
-                      await provider.updateProduct(newProd);
-                    } else {
-                      await provider.addProduct(newProd);
+                      final provider = Provider.of<ProductProvider>(context, listen: false);
+                      if (isEditing) {
+                        await provider.updateProduct(newProd);
+                      } else {
+                        await provider.addProduct(newProd);
+                      }
+
+                      if (ctx.mounted) Navigator.pop(ctx);
                     }
-
-                    if (ctx.mounted) Navigator.pop(ctx);
                   },
                   child: Text(isEditing ? 'Update' : 'Add'),
                 ),

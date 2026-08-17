@@ -7,6 +7,7 @@ class CustomersScreen extends StatelessWidget {
   const CustomersScreen({super.key});
 
   void _showCustomerDialog(BuildContext context, {Customer? customer}) {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: customer?.name ?? '');
     final contactPersonController = TextEditingController(text: customer?.contactPerson ?? '');
     final phoneController = TextEditingController(text: customer?.phone ?? '');
@@ -24,60 +25,67 @@ class CustomersScreen extends StatelessWidget {
         return AlertDialog(
           title: Text(isEditing ? 'Edit Customer' : 'Add New Customer'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Customer / Business Name', prefixIcon: Icon(Icons.person)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: contactPersonController,
-                  decoration: const InputDecoration(labelText: 'Contact Person', prefixIcon: Icon(Icons.badge)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone Number', prefixIcon: Icon(Icons.phone)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email Address', prefixIcon: Icon(Icons.email)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: addressController,
-                  decoration: const InputDecoration(labelText: 'Address', prefixIcon: Icon(Icons.location_on)),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: gstController,
-                        decoration: const InputDecoration(labelText: 'GSTIN', prefixIcon: Icon(Icons.verified)),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Customer name is required' : null,
+                    decoration: const InputDecoration(labelText: 'Customer / Business Name *', prefixIcon: Icon(Icons.person)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: addressController,
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
+                    decoration: const InputDecoration(labelText: 'Full Address *', prefixIcon: Icon(Icons.location_on)),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: gstController,
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'GSTIN is required' : null,
+                          decoration: const InputDecoration(labelText: 'GSTIN *', prefixIcon: Icon(Icons.verified)),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: stateCodeController,
-                        decoration: const InputDecoration(labelText: 'State Code', prefixIcon: Icon(Icons.map)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          controller: stateCodeController,
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'State code is required' : null,
+                          decoration: const InputDecoration(labelText: 'State Code *', prefixIcon: Icon(Icons.map)),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: openingBalanceController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Opening Balance (₹)', prefixIcon: Icon(Icons.account_balance_wallet)),
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: contactPersonController,
+                    decoration: const InputDecoration(labelText: 'Contact Person (Optional)', prefixIcon: Icon(Icons.badge)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(labelText: 'Phone Number (Optional)', prefixIcon: Icon(Icons.phone)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(labelText: 'Email Address (Optional)', prefixIcon: Icon(Icons.email)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: openingBalanceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Opening Balance (₹, Optional)', prefixIcon: Icon(Icons.account_balance_wallet)),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -87,26 +95,28 @@ class CustomersScreen extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () async {
-                final newCust = Customer(
-                  id: customer?.id,
-                  name: nameController.text.trim(),
-                  contactPerson: contactPersonController.text.trim(),
-                  phone: phoneController.text.trim(),
-                  email: emailController.text.trim(),
-                  address: addressController.text.trim(),
-                  gstNumber: gstController.text.trim(),
-                  stateCode: stateCodeController.text.trim(),
-                  openingBalance: double.tryParse(openingBalanceController.text.trim()) ?? 0.0,
-                );
+                if (formKey.currentState!.validate()) {
+                  final newCust = Customer(
+                    id: customer?.id,
+                    name: nameController.text.trim(),
+                    contactPerson: contactPersonController.text.trim(),
+                    phone: phoneController.text.trim(),
+                    email: emailController.text.trim(),
+                    address: addressController.text.trim(),
+                    gstNumber: gstController.text.trim(),
+                    stateCode: stateCodeController.text.trim(),
+                    openingBalance: double.tryParse(openingBalanceController.text.trim()) ?? 0.0,
+                  );
 
-                final provider = Provider.of<CustomerProvider>(context, listen: false);
-                if (isEditing) {
-                  await provider.updateCustomer(newCust);
-                } else {
-                  await provider.addCustomer(newCust);
+                  final provider = Provider.of<CustomerProvider>(context, listen: false);
+                  if (isEditing) {
+                    await provider.updateCustomer(newCust);
+                  } else {
+                    await provider.addCustomer(newCust);
+                  }
+
+                  if (ctx.mounted) Navigator.pop(ctx);
                 }
-
-                if (ctx.mounted) Navigator.pop(ctx);
               },
               child: Text(isEditing ? 'Update' : 'Add'),
             ),

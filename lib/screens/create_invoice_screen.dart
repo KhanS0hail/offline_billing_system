@@ -60,6 +60,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   }
 
   void _showQuickAddCustomerDialog(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
     final addressController = TextEditingController();
@@ -72,71 +73,78 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         return AlertDialog(
           title: const Text('Add New Customer'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Customer / Business Name *', prefixIcon: Icon(Icons.person)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone Number', prefixIcon: Icon(Icons.phone)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: addressController,
-                  decoration: const InputDecoration(labelText: 'Address', prefixIcon: Icon(Icons.location_on)),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: gstController,
-                        decoration: const InputDecoration(labelText: 'GSTIN', prefixIcon: Icon(Icons.verified)),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Customer name is required' : null,
+                    decoration: const InputDecoration(labelText: 'Customer / Business Name *', prefixIcon: Icon(Icons.person)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: addressController,
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
+                    decoration: const InputDecoration(labelText: 'Address *', prefixIcon: Icon(Icons.location_on)),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: gstController,
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'GSTIN is required' : null,
+                          decoration: const InputDecoration(labelText: 'GSTIN *', prefixIcon: Icon(Icons.verified)),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: stateCodeController,
-                        decoration: const InputDecoration(labelText: 'State Code', prefixIcon: Icon(Icons.map)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          controller: stateCodeController,
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'State code is required' : null,
+                          decoration: const InputDecoration(labelText: 'State Code *', prefixIcon: Icon(Icons.map)),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(labelText: 'Phone Number (Optional)', prefixIcon: Icon(Icons.phone)),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
-                if (nameController.text.trim().isEmpty) return;
+                if (formKey.currentState!.validate()) {
+                  final newCust = Customer(
+                    name: nameController.text.trim(),
+                    phone: phoneController.text.trim(),
+                    address: addressController.text.trim(),
+                    gstNumber: gstController.text.trim(),
+                    stateCode: stateCodeController.text.trim(),
+                  );
 
-                final newCust = Customer(
-                  name: nameController.text.trim(),
-                  phone: phoneController.text.trim(),
-                  address: addressController.text.trim(),
-                  gstNumber: gstController.text.trim(),
-                  stateCode: stateCodeController.text.trim(),
-                );
+                  final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+                  await custProvider.addCustomer(newCust);
 
-                final custProvider = Provider.of<CustomerProvider>(context, listen: false);
-                await custProvider.addCustomer(newCust);
-
-                // Auto-select the newly added customer
-                if (custProvider.customers.isNotEmpty) {
-                  final added = custProvider.customers.last;
-                  if (context.mounted) {
-                    Provider.of<InvoiceProvider>(context, listen: false).setSelectedCustomer(added);
+                  // Auto-select the newly added customer
+                  if (custProvider.customers.isNotEmpty) {
+                    final added = custProvider.customers.last;
+                    if (context.mounted) {
+                      Provider.of<InvoiceProvider>(context, listen: false).setSelectedCustomer(added);
+                    }
                   }
-                }
 
-                if (ctx.mounted) Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                }
               },
               child: const Text('Add & Select'),
             ),
@@ -147,6 +155,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   }
 
   void _showQuickAddProductDialog(BuildContext context, {required VoidCallback onAdded}) {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
     final priceController = TextEditingController();
     final hsnController = TextEditingController();
@@ -161,89 +170,93 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
             return AlertDialog(
               title: const Text('Add New Product / Item'),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Product / Item Name *', prefixIcon: Icon(Icons.inventory_2)),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: priceController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(labelText: 'Price / Rate (₹) *', prefixIcon: Icon(Icons.currency_rupee)),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Product name is required' : null,
+                        decoration: const InputDecoration(labelText: 'Product / Item Name *', prefixIcon: Icon(Icons.inventory_2)),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: hsnController,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'HSN code is required' : null,
+                        decoration: const InputDecoration(labelText: 'HSN / SAC Code *', prefixIcon: Icon(Icons.code)),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: priceController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return 'Price is required';
+                                final p = double.tryParse(v.trim());
+                                if (p == null || p < 0) return 'Enter valid price';
+                                return null;
+                              },
+                              decoration: const InputDecoration(labelText: 'Price / Rate (₹) *', prefixIcon: Icon(Icons.currency_rupee)),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedUnit,
-                            decoration: const InputDecoration(labelText: 'Unit'),
-                            items: _availableUnits.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
-                            onChanged: (v) {
-                              if (v != null) setDialogState(() => selectedUnit = v);
-                            },
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedUnit,
+                              decoration: const InputDecoration(labelText: 'Unit'),
+                              items: _availableUnits.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                              onChanged: (v) {
+                                if (v != null) setDialogState(() => selectedUnit = v);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: hsnController,
-                            decoration: const InputDecoration(labelText: 'HSN Code', prefixIcon: Icon(Icons.code)),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<double>(
-                            value: selectedGst,
-                            decoration: const InputDecoration(labelText: 'GST Rate'),
-                            items: [0.0, 5.0, 12.0, 18.0, 28.0]
-                                .map((g) => DropdownMenuItem(value: g, child: Text('${g.toStringAsFixed(0)}%')))
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) setDialogState(() => selectedGst = v);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<double>(
+                        value: selectedGst,
+                        decoration: const InputDecoration(labelText: 'GST Rate'),
+                        items: [0.0, 5.0, 12.0, 18.0, 28.0]
+                            .map((g) => DropdownMenuItem(value: g, child: Text('${g.toStringAsFixed(0)}%')))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) setDialogState(() => selectedGst = v);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
                 ElevatedButton(
                   onPressed: () async {
-                    if (nameController.text.trim().isEmpty) return;
-                    final price = double.tryParse(priceController.text.trim()) ?? 0.0;
+                    if (formKey.currentState!.validate()) {
+                      final price = double.tryParse(priceController.text.trim()) ?? 0.0;
 
-                    final newProduct = Product(
-                      name: nameController.text.trim(),
-                      price: price,
-                      unit: selectedUnit,
-                      hsnCode: hsnController.text.trim(),
-                      gstRate: selectedGst,
-                    );
+                      final newProduct = Product(
+                        name: nameController.text.trim(),
+                        price: price,
+                        unit: selectedUnit,
+                        hsnCode: hsnController.text.trim(),
+                        gstRate: selectedGst,
+                      );
 
-                    final prodProvider = Provider.of<ProductProvider>(context, listen: false);
-                    await prodProvider.addProduct(newProduct);
+                      final prodProvider = Provider.of<ProductProvider>(context, listen: false);
+                      await prodProvider.addProduct(newProduct);
 
-                    // Add directly to draft
-                    if (context.mounted) {
-                      Provider.of<InvoiceProvider>(context, listen: false).addProductToDraft(newProduct);
-                    }
+                      // Add directly to draft
+                      if (context.mounted) {
+                        Provider.of<InvoiceProvider>(context, listen: false).addProductToDraft(newProduct);
+                      }
 
-                    if (ctx.mounted) {
-                      Navigator.pop(ctx); // Close add product dialog
-                      onAdded();          // Close picker dialog
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx); // Close add product dialog
+                        onAdded();          // Close picker dialog
+                      }
                     }
                   },
                   child: const Text('Save & Add to Invoice'),
@@ -339,7 +352,9 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   }
 
   void _showEditItemDialog(BuildContext context, int index, InvoiceItem item) {
+    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: item.productName);
+    final hsnController = TextEditingController(text: item.hsnCode ?? '');
     final sizeController = TextEditingController(text: item.size ?? '');
 
     // Parse existing PCS count into number + unit
@@ -372,125 +387,150 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
             return AlertDialog(
               title: const Text('Edit Invoice Item'),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Item Name *', prefixIcon: Icon(Icons.inventory)),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: sizeController,
-                      decoration: const InputDecoration(labelText: 'Size (Optional, e.g. M, 10x12)', prefixIcon: Icon(Icons.straighten)),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // 1. PCS / Packaging Column (Number + Unit Selector)
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 5,
-                          child: TextField(
-                            controller: pcsNumController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'PCS Count (Optional)',
-                              hintText: 'e.g. 10',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 4,
-                          child: DropdownButtonFormField<String>(
-                            value: selectedPcsUnit,
-                            decoration: const InputDecoration(
-                              labelText: 'PCS Unit',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: pcsUnitsList
-                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) setDialogState(() => selectedPcsUnit = v);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // 2. Billing Quantity & Unit Column (Number + Unit Selector)
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 5,
-                          child: TextField(
-                            controller: qtyController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Billed Qty *',
-                              hintText: 'e.g. 100',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 4,
-                          child: DropdownButtonFormField<String>(
-                            value: selectedBillingUnit,
-                            decoration: const InputDecoration(
-                              labelText: 'Billing Unit *',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: _availableUnits
-                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) setDialogState(() => selectedBillingUnit = v);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: priceController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Rate / Price per Unit (₹) *',
-                        prefixIcon: Icon(Icons.currency_rupee),
-                        border: OutlineInputBorder(),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Item name is required' : null,
+                        decoration: const InputDecoration(labelText: 'Item Name *', prefixIcon: Icon(Icons.inventory)),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: hsnController,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'HSN code is required' : null,
+                        decoration: const InputDecoration(labelText: 'HSN / SAC Code *', prefixIcon: Icon(Icons.code)),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: sizeController,
+                        decoration: const InputDecoration(labelText: 'Size (Optional, e.g. M, 10x12)', prefixIcon: Icon(Icons.straighten)),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 1. PCS / Packaging Column (Number + Unit Selector)
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: TextFormField(
+                              controller: pcsNumController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(
+                                labelText: 'PCS Count (Optional)',
+                                hintText: 'e.g. 10',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 4,
+                            child: DropdownButtonFormField<String>(
+                              value: selectedPcsUnit,
+                              decoration: const InputDecoration(
+                                labelText: 'PCS Unit',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: pcsUnitsList
+                                  .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v != null) setDialogState(() => selectedPcsUnit = v);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 2. Billing Quantity & Unit Column (Number + Unit Selector)
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: TextFormField(
+                              controller: qtyController,
+                              keyboardType: TextInputType.number,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return 'Qty required';
+                                final q = int.tryParse(v.trim());
+                                if (q == null || q <= 0) return 'Must be > 0';
+                                return null;
+                              },
+                              decoration: const InputDecoration(
+                                labelText: 'Billed Qty *',
+                                hintText: 'e.g. 100',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 4,
+                            child: DropdownButtonFormField<String>(
+                              value: selectedBillingUnit,
+                              decoration: const InputDecoration(
+                                labelText: 'Billing Unit *',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: _availableUnits
+                                  .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v != null) setDialogState(() => selectedBillingUnit = v);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: priceController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Rate is required';
+                          final p = double.tryParse(v.trim());
+                          if (p == null || p < 0) return 'Must be >= 0';
+                          return null;
+                        },
+                        decoration: const InputDecoration(
+                          labelText: 'Rate / Price per Unit (₹) *',
+                          prefixIcon: Icon(Icons.currency_rupee),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
                 ElevatedButton(
                   onPressed: () {
-                    final qty = int.tryParse(qtyController.text.trim()) ?? 1;
-                    final price = double.tryParse(priceController.text.trim()) ?? item.price;
+                    if (formKey.currentState!.validate()) {
+                      final qty = int.tryParse(qtyController.text.trim()) ?? 1;
+                      final price = double.tryParse(priceController.text.trim()) ?? item.price;
 
-                    final rawPcsNum = pcsNumController.text.trim();
-                    final formattedPcs = rawPcsNum.isNotEmpty ? "$rawPcsNum $selectedPcsUnit" : null;
+                      final rawPcsNum = pcsNumController.text.trim();
+                      final formattedPcs = rawPcsNum.isNotEmpty ? "$rawPcsNum $selectedPcsUnit" : null;
 
-                    final updatedItem = item.copyWith(
-                      productName: nameController.text.trim().isEmpty ? item.productName : nameController.text.trim(),
-                      size: sizeController.text.trim().isEmpty ? null : sizeController.text.trim(),
-                      pcsCount: formattedPcs,
-                      quantity: qty > 0 ? qty : 1,
-                      unit: selectedBillingUnit,
-                      price: price,
-                      amount: (qty > 0 ? qty : 1) * price,
-                    );
+                      final updatedItem = item.copyWith(
+                        productName: nameController.text.trim(),
+                        hsnCode: hsnController.text.trim(),
+                        size: sizeController.text.trim().isEmpty ? null : sizeController.text.trim(),
+                        pcsCount: formattedPcs,
+                        quantity: qty > 0 ? qty : 1,
+                        unit: selectedBillingUnit,
+                        price: price,
+                        amount: (qty > 0 ? qty : 1) * price,
+                      );
 
-                    Provider.of<InvoiceProvider>(context, listen: false).updateDraftItem(index, updatedItem);
-                    Navigator.pop(ctx);
+                      Provider.of<InvoiceProvider>(context, listen: false).updateDraftItem(index, updatedItem);
+                      Navigator.pop(ctx);
+                    }
                   },
                   child: const Text('Save Changes'),
                 ),
@@ -592,7 +632,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                               child: TextField(
                                 controller: _challanController,
                                 decoration: const InputDecoration(
-                                  labelText: 'Challan No. (Optional)',
+                                  labelText: 'Challan Number *',
                                   prefixIcon: Icon(Icons.numbers),
                                   border: OutlineInputBorder(),
                                 ),
@@ -978,27 +1018,51 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton.icon(
-                    onPressed: invProvider.draftItems.isEmpty
-                        ? null
-                        : () async {
-                            int savedId = await invProvider.saveDraftInvoice(company);
-                            final savedInvoice = await DatabaseHelper.instance.getInvoiceById(savedId);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
-                              );
-                              if (savedInvoice != null) {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => PdfPreviewScreen(invoice: savedInvoice),
-                                  ),
-                                );
-                              } else {
-                                Navigator.pop(context);
-                              }
-                            }
-                          },
+                    onPressed: () async {
+                      if (invProvider.selectedCustomer == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please select a customer for this invoice.'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+                      if (_challanController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Challan number is required.'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+                      if (invProvider.draftItems.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please add at least 1 line item.'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+                      if (invProvider.paymentStatus == 'Partially Paid' &&
+                          (invProvider.receivedAmount <= 0 || invProvider.receivedAmount >= totals.grandTotal)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter a valid partial received amount (greater than 0 and less than Grand Total).'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+
+                      int savedId = await invProvider.saveDraftInvoice(company);
+                      final savedInvoice = await DatabaseHelper.instance.getInvoiceById(savedId);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
+                        );
+                        if (savedInvoice != null) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PdfPreviewScreen(invoice: savedInvoice),
+                            ),
+                          );
+                        } else {
+                          Navigator.pop(context);
+                        }
+                      }
+                    },
                     icon: const Icon(Icons.check_circle),
                     label: const Text('Save & Preview PDF Invoice', style: TextStyle(fontSize: 16)),
                   ),
