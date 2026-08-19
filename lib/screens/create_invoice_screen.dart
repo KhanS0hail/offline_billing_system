@@ -351,6 +351,91 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     );
   }
 
+  void _showCustomerPickerDialog(BuildContext context) {
+    Provider.of<CustomerProvider>(context, listen: false).setSearchQuery('');
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return Consumer<CustomerProvider>(
+          builder: (context, custProvider, child) {
+            final customers = custProvider.customers;
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Select Customer'),
+                  TextButton.icon(
+                    onPressed: () => _showQuickAddCustomerDialog(context),
+                    icon: const Icon(Icons.person_add_alt_1, size: 18),
+                    label: const Text('+ New Customer'),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 400,
+                child: Column(
+                  children: [
+                    TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search customer name, GSTIN, phone...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onChanged: (v) => custProvider.setSearchQuery(v),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: customers.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text('No customers found.'),
+                                  const SizedBox(height: 8),
+                                  ElevatedButton.icon(
+                                    onPressed: () => _showQuickAddCustomerDialog(context),
+                                    icon: const Icon(Icons.person_add_alt_1),
+                                    label: const Text('Add New Customer'),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: customers.length,
+                              itemBuilder: (context, index) {
+                                final cust = customers[index];
+                                final gstin = (cust.gstNumber != null && cust.gstNumber!.isNotEmpty) ? cust.gstNumber! : 'No GSTIN';
+                                final state = (cust.stateCode != null && cust.stateCode!.isNotEmpty) ? 'State: ${cust.stateCode}' : '';
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                    child: Text(cust.name?.isNotEmpty == true ? cust.name![0].toUpperCase() : 'C'),
+                                  ),
+                                  title: Text(cust.name ?? 'Unnamed Customer', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: Text('GSTIN: $gstin | $state\n${cust.address ?? ""}'),
+                                  isThreeLine: cust.address != null && cust.address!.isNotEmpty,
+                                  onTap: () {
+                                    Provider.of<InvoiceProvider>(context, listen: false).setSelectedCustomer(cust);
+                                    Navigator.pop(ctx);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showEditItemDialog(BuildContext context, int index, InvoiceItem item) {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: item.productName);
@@ -762,13 +847,23 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            DropdownButtonFormField<Customer>(
-                              value: invProvider.selectedCustomer,
-                              decoration: const InputDecoration(labelText: 'Select Customer', border: OutlineInputBorder()),
-                              items: customers
-                                  .map((c) => DropdownMenuItem(value: c, child: Text(c.name ?? 'Unnamed Customer')))
-                                  .toList(),
-                              onChanged: (c) => invProvider.setSelectedCustomer(c),
+                            InkWell(
+                              onTap: () => _showCustomerPickerDialog(context),
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Customer / Billed Company *',
+                                  prefixIcon: Icon(Icons.business_rounded),
+                                  suffixIcon: Icon(Icons.search),
+                                  border: OutlineInputBorder(),
+                                ),
+                                child: Text(
+                                  invProvider.selectedCustomer?.name ?? 'Tap to Search & Select Customer...',
+                                  style: TextStyle(
+                                    fontWeight: invProvider.selectedCustomer != null ? FontWeight.bold : FontWeight.normal,
+                                    color: invProvider.selectedCustomer != null ? null : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
                             ),
                             if (invProvider.selectedCustomer != null) ...[
                               const SizedBox(height: 12),

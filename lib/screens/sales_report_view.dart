@@ -254,25 +254,33 @@ class _SalesReportViewState extends State<SalesReportView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Filter Mode Segmented Control
-                  Row(
-                    children: [
-                      const Icon(Icons.filter_alt_rounded, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      const Text('Report Period:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const Spacer(),
-                      SegmentedButton<SalesFilterMode>(
-                        segments: const [
-                          ButtonSegment(value: SalesFilterMode.monthly, label: Text('Monthly')),
-                          ButtonSegment(value: SalesFilterMode.yearly, label: Text('Yearly')),
-                          ButtonSegment(value: SalesFilterMode.customRange, label: Text('Custom Range')),
-                        ],
-                        selected: {_filterMode},
-                        onSelectionChanged: (Set<SalesFilterMode> sel) {
-                          setState(() => _filterMode = sel.first);
-                        },
+                  // Filter Mode Dropdown
+                  DropdownButtonFormField<SalesFilterMode>(
+                    value: _filterMode,
+                    decoration: const InputDecoration(
+                      labelText: 'Report Period',
+                      prefixIcon: Icon(Icons.filter_alt_rounded, color: Colors.blue),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: SalesFilterMode.monthly,
+                        child: Text('Monthly Sales Report'),
+                      ),
+                      DropdownMenuItem(
+                        value: SalesFilterMode.yearly,
+                        child: Text('Yearly (Annual FY) Report'),
+                      ),
+                      DropdownMenuItem(
+                        value: SalesFilterMode.customRange,
+                        child: Text('Custom Date Range Report'),
                       ),
                     ],
+                    onChanged: (SalesFilterMode? mode) {
+                      if (mode != null) {
+                        setState(() => _filterMode = mode);
+                      }
+                    },
                   ),
                   const Divider(height: 24),
 
