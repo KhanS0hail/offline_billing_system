@@ -238,6 +238,8 @@ class PdfInvoiceBuilder {
                         },
                         children: [
                           _keyColonValueRow('Invoice No.', invoice.invoiceNumber),
+                          if (invoice.poNumber != null && invoice.poNumber!.trim().isNotEmpty)
+                            _keyColonValueRow('P.O. No.', invoice.poNumber!),
                           if (invoice.challanNumber != null && invoice.challanNumber!.trim().isNotEmpty)
                             _keyColonValueRow('Challan No.', invoice.challanNumber!),
                           _keyColonValueRow('Invoice Date', invoice.date),

@@ -20,6 +20,7 @@ class CreateInvoiceScreen extends StatefulWidget {
 
 class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   late TextEditingController _invoiceNumberController;
+  late TextEditingController _poNumberController;
   late TextEditingController _challanController;
   late TextEditingController _vehicleController;
   late TextEditingController _transportModeController;
@@ -37,6 +38,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     super.initState();
     final invProvider = Provider.of<InvoiceProvider>(context, listen: false);
     _invoiceNumberController = TextEditingController(text: invProvider.nextInvoiceNumber);
+    _poNumberController = TextEditingController(text: invProvider.poNumber ?? '');
     _challanController = TextEditingController(text: invProvider.challanNumber ?? '');
     _vehicleController = TextEditingController(text: invProvider.vehicleNumber);
     _transportModeController = TextEditingController(text: invProvider.transportMode);
@@ -49,6 +51,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   @override
   void dispose() {
     _invoiceNumberController.dispose();
+    _poNumberController.dispose();
     _challanController.dispose();
     _vehicleController.dispose();
     _transportModeController.dispose();
@@ -714,6 +717,18 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         Row(
                           children: [
                             Expanded(
+                              child: TextFormField(
+                                controller: _poNumberController,
+                                decoration: const InputDecoration(
+                                  labelText: 'P.O. Number (Optional)',
+                                  prefixIcon: Icon(Icons.assignment_turned_in_outlined),
+                                  border: OutlineInputBorder(),
+                                ),
+                                onChanged: (v) => invProvider.setPoNumber(v),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
                               child: TextField(
                                 controller: _challanController,
                                 decoration: const InputDecoration(
@@ -724,7 +739,11 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                 onChanged: (v) => invProvider.setChallanNumber(v),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
                             Expanded(
                               child: InkWell(
                                 onTap: () async {

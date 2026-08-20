@@ -4,6 +4,7 @@ class Invoice {
   final int? id;
   final String invoiceType; // 'TAX INVOICE' or 'PROFORMA INVOICE'
   final String invoiceNumber;
+  final String? poNumber;
   final String? challanNumber;
   final String? deliveryDate;
   final String? vehicleNumber;
@@ -44,6 +45,7 @@ class Invoice {
     this.id,
     this.invoiceType = 'TAX INVOICE',
     required this.invoiceNumber,
+    this.poNumber,
     this.challanNumber,
     this.deliveryDate,
     this.vehicleNumber,
@@ -84,6 +86,7 @@ class Invoice {
       'id': id,
       'invoice_type': invoiceType,
       'invoice_number': invoiceNumber,
+      'po_number': poNumber,
       'challan_number': challanNumber,
       'delivery_date': deliveryDate,
       'vehicle_number': vehicleNumber,
@@ -128,6 +131,7 @@ class Invoice {
       id: map['id'] as int?,
       invoiceType: map['invoice_type'] ?? 'TAX INVOICE',
       invoiceNumber: map['invoice_number'] ?? '',
+      poNumber: map['po_number'],
       challanNumber: map['challan_number'],
       deliveryDate: map['delivery_date'],
       vehicleNumber: map['vehicle_number'],

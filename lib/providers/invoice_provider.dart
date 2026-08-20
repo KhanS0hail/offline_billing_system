@@ -17,6 +17,7 @@ class InvoiceProvider extends ChangeNotifier {
   int? _editingInvoiceId; // null if creating new, non-null if editing existing
   String _invoiceType = 'TAX INVOICE'; // 'TAX INVOICE' or 'PROFORMA INVOICE'
   String _nextInvoiceNumber = '';
+  String? _poNumber;
   String? _challanNumber;
   DateTime _deliveryDate = DateTime.now();
   String _vehicleNumber = '';
@@ -58,6 +59,7 @@ class InvoiceProvider extends ChangeNotifier {
   bool get isEditing => _editingInvoiceId != null;
   String get invoiceType => _invoiceType;
   String get nextInvoiceNumber => _nextInvoiceNumber;
+  String? get poNumber => _poNumber;
   String? get challanNumber => _challanNumber;
   DateTime get deliveryDate => _deliveryDate;
   String get vehicleNumber => _vehicleNumber;
@@ -100,6 +102,7 @@ class InvoiceProvider extends ChangeNotifier {
     _editingInvoiceId = null;
     _invoiceType = 'TAX INVOICE';
     _nextInvoiceNumber = await DatabaseHelper.instance.generateNextInvoiceNumber();
+    _poNumber = null;
     _challanNumber = null;
     _deliveryDate = DateTime.now();
     _vehicleNumber = '';
@@ -122,6 +125,11 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPoNumber(String? po) {
+    _poNumber = po;
+    notifyListeners();
+  }
+
   Future<void> resetToAutoInvoiceNumber() async {
     _nextInvoiceNumber = await DatabaseHelper.instance.generateNextInvoiceNumber();
     notifyListeners();
@@ -131,6 +139,7 @@ class InvoiceProvider extends ChangeNotifier {
     _editingInvoiceId = invoice.id;
     _invoiceType = invoice.invoiceType;
     _nextInvoiceNumber = invoice.invoiceNumber;
+    _poNumber = invoice.poNumber;
     _challanNumber = invoice.challanNumber;
     _vehicleNumber = invoice.vehicleNumber ?? '';
     _transportMode = invoice.transportMode ?? '';
@@ -302,6 +311,7 @@ class InvoiceProvider extends ChangeNotifier {
       id: _editingInvoiceId,
       invoiceType: _invoiceType,
       invoiceNumber: _nextInvoiceNumber,
+      poNumber: (_poNumber != null && _poNumber!.trim().isNotEmpty) ? _poNumber!.trim() : null,
       challanNumber: (_challanNumber != null && _challanNumber!.trim().isNotEmpty) ? _challanNumber!.trim() : null,
       deliveryDate: formattedDeliveryDate,
       vehicleNumber: (_vehicleNumber.trim().isNotEmpty) ? _vehicleNumber.trim() : null,

@@ -108,6 +108,7 @@ class DatabaseHelper {
         id $idType,
         invoice_type $textNull,
         invoice_number $textNull,
+        po_number $textNull,
         challan_number $textNull,
         delivery_date $textNull,
         vehicle_number $textNull,
@@ -232,6 +233,7 @@ class DatabaseHelper {
 
     // Invoices columns
     await _addColumnIfNotExists(db, 'invoices', 'invoice_type', 'TEXT');
+    await _addColumnIfNotExists(db, 'invoices', 'po_number', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'challan_number', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'delivery_date', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'vehicle_number', 'TEXT');
