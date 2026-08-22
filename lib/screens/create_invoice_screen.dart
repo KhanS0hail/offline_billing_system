@@ -24,6 +24,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
   late TextEditingController _challanController;
   late TextEditingController _vehicleController;
   late TextEditingController _transportModeController;
+  late TextEditingController _loadingController;
   late TextEditingController _transportController;
   late TextEditingController _discountController;
   late TextEditingController _receivedController;
@@ -42,6 +43,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     _challanController = TextEditingController(text: invProvider.challanNumber ?? '');
     _vehicleController = TextEditingController(text: invProvider.vehicleNumber);
     _transportModeController = TextEditingController(text: invProvider.transportMode);
+    _loadingController = TextEditingController(text: invProvider.loadingCharges == 0 ? '' : invProvider.loadingCharges.toString());
     _transportController = TextEditingController(text: invProvider.transportCharges == 0 ? '' : invProvider.transportCharges.toString());
     _discountController = TextEditingController(text: invProvider.discountAmount == 0 ? '' : invProvider.discountAmount.toString());
     _receivedController = TextEditingController(text: invProvider.receivedAmount == 0 ? '' : invProvider.receivedAmount.toString());
@@ -55,6 +57,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     _challanController.dispose();
     _vehicleController.dispose();
     _transportModeController.dispose();
+    _loadingController.dispose();
     _transportController.dispose();
     _discountController.dispose();
     _receivedController.dispose();
@@ -73,85 +76,128 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
     showDialog(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Add New Customer'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameController,
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Customer name is required' : null,
-                    decoration: const InputDecoration(labelText: 'Customer / Business Name *', prefixIcon: Icon(Icons.person)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: addressController,
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
-                    decoration: const InputDecoration(labelText: 'Address *', prefixIcon: Icon(Icons.location_on)),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Add New Customer'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: gstController,
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'GSTIN is required' : null,
-                          decoration: const InputDecoration(labelText: 'GSTIN *', prefixIcon: Icon(Icons.verified)),
-                        ),
+                      TextFormField(
+                        controller: nameController,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Customer name is required' : null,
+                        decoration: const InputDecoration(labelText: 'Customer / Business Name *', prefixIcon: Icon(Icons.person)),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          controller: stateCodeController,
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'State code is required' : null,
-                          decoration: const InputDecoration(labelText: 'State Code *', prefixIcon: Icon(Icons.map)),
-                        ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: addressController,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Full Address is required' : null,
+                        decoration: const InputDecoration(labelText: 'Address *', prefixIcon: Icon(Icons.location_on)),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: gstController,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return 'GSTIN is required';
+                                final clean = v.trim().toUpperCase();
+                                final gstRegex = RegExp(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$');
+                                if (!gstRegex.hasMatch(clean)) {
+                                  return 'Enter valid 15-digit GSTIN';
+                                }
+                                return null;
+                              },
+                              onChanged: (v) {
+                                final clean = v.trim().toUpperCase();
+                                if (clean.length >= 2) {
+                                  final prefix = clean.substring(0, 2);
+                                  final codeNum = int.tryParse(prefix);
+                                  if (codeNum != null && ((codeNum >= 1 && codeNum <= 37) || codeNum == 97)) {
+                                    if (stateCodeController.text.trim() != prefix) {
+                                      setDialogState(() {
+                                        stateCodeController.text = prefix;
+                                      });
+                                    }
+                                  }
+                                }
+                              },
+                              decoration: const InputDecoration(labelText: 'GSTIN *', prefixIcon: Icon(Icons.verified)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: stateCodeController,
+                              keyboardType: TextInputType.number,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return 'State code is required';
+                                final code = int.tryParse(v.trim());
+                                if (code == null || (code < 1 || (code > 37 && code != 97))) {
+                                  return 'State Code (01-37)';
+                                }
+                                return null;
+                              },
+                              decoration: const InputDecoration(labelText: 'State Code *', prefixIcon: Icon(Icons.map)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        validator: (v) {
+                          if (v != null && v.trim().isNotEmpty) {
+                            final clean = v.trim().replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
+                            if (clean.length < 10 || clean.length > 12 || int.tryParse(clean) == null) {
+                              return 'Enter valid 10-digit phone number';
+                            }
+                          }
+                          return null;
+                        },
+                        decoration: const InputDecoration(labelText: 'Phone Number (Optional)', prefixIcon: Icon(Icons.phone)),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: 'Phone Number (Optional)', prefixIcon: Icon(Icons.phone)),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  final newCust = Customer(
-                    name: nameController.text.trim(),
-                    phone: phoneController.text.trim(),
-                    address: addressController.text.trim(),
-                    gstNumber: gstController.text.trim(),
-                    stateCode: stateCodeController.text.trim(),
-                  );
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      final newCust = Customer(
+                        name: nameController.text.trim(),
+                        phone: phoneController.text.trim(),
+                        address: addressController.text.trim(),
+                        gstNumber: gstController.text.trim(),
+                        stateCode: stateCodeController.text.trim(),
+                      );
 
-                  final custProvider = Provider.of<CustomerProvider>(context, listen: false);
-                  await custProvider.addCustomer(newCust);
+                      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+                      await custProvider.addCustomer(newCust);
 
-                  // Auto-select the newly added customer
-                  if (custProvider.customers.isNotEmpty) {
-                    final added = custProvider.customers.last;
-                    if (context.mounted) {
-                      Provider.of<InvoiceProvider>(context, listen: false).setSelectedCustomer(added);
+                      // Auto-select the newly added customer
+                      if (custProvider.customers.isNotEmpty) {
+                        final added = custProvider.customers.last;
+                        if (context.mounted) {
+                          Provider.of<InvoiceProvider>(context, listen: false).setSelectedCustomer(added);
+                        }
+                      }
+
+                      if (ctx.mounted) Navigator.pop(ctx);
                     }
-                  }
-
-                  if (ctx.mounted) Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Add & Select'),
-            ),
-          ],
+                  },
+                  child: const Text('Add Customer'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -488,7 +534,15 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: hsnController,
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'HSN code is required' : null,
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'HSN code is required';
+                          final clean = v.trim();
+                          if (!RegExp(r'^\d{2,8}$').hasMatch(clean)) {
+                            return 'Enter 2-8 digit HSN code';
+                          }
+                          return null;
+                        },
                         decoration: const InputDecoration(labelText: 'HSN / SAC Code *', prefixIcon: Icon(Icons.code)),
                       ),
                       const SizedBox(height: 8),
@@ -1004,13 +1058,28 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Expanded(child: Text('Transport / Loading Charges (₹)')),
+                            const Expanded(child: Text('Loading / Packing Charges (₹)')),
+                            SizedBox(
+                              width: 120,
+                              child: TextField(
+                                controller: _loadingController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), hintText: '0.00'),
+                                onChanged: (v) => invProvider.setLoadingCharges(double.tryParse(v) ?? 0.0),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Expanded(child: Text('Transport / Freight Charges (₹)')),
                             SizedBox(
                               width: 120,
                               child: TextField(
                                 controller: _transportController,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                                decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), hintText: '0.00'),
                                 onChanged: (v) => invProvider.setTransportCharges(double.tryParse(v) ?? 0.0),
                               ),
                             ),

@@ -2,6 +2,7 @@ import '../models/invoice_item.dart';
 
 class GstCalculationResult {
   final double subtotal;
+  final double loadingCharges;
   final double transportCharges;
   final double taxableBase;
   final double gstRate;
@@ -17,6 +18,7 @@ class GstCalculationResult {
 
   GstCalculationResult({
     required this.subtotal,
+    required this.loadingCharges,
     required this.transportCharges,
     required this.taxableBase,
     required this.gstRate,
@@ -37,6 +39,7 @@ class GstCalculator {
     required List<InvoiceItem> items,
     required String? companyStateCode,
     required String? customerStateCode,
+    double loadingCharges = 0.0,
     double transportCharges = 0.0,
     double gstRate = 18.0,
     double discountAmount = 0.0,
@@ -47,8 +50,8 @@ class GstCalculator {
       subtotal += item.amount;
     }
 
-    // 2. Add Transport / Loading Charges to get Taxable Base
-    double taxableBase = subtotal + transportCharges;
+    // 2. Add Loading + Transport Charges to get Taxable Base
+    double taxableBase = subtotal + loadingCharges + transportCharges;
 
     // 3. Determine Tax Type (Intra-state CGST+SGST vs Inter-state IGST)
     bool isIntraState = true;
@@ -86,6 +89,7 @@ class GstCalculator {
 
     return GstCalculationResult(
       subtotal: subtotal,
+      loadingCharges: loadingCharges,
       transportCharges: transportCharges,
       taxableBase: taxableBase,
       gstRate: gstRate,

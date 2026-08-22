@@ -22,105 +22,165 @@ class CustomersScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          title: Text(isEditing ? 'Edit Customer' : 'Add New Customer'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameController,
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Customer name is required' : null,
-                    decoration: const InputDecoration(labelText: 'Customer / Business Name *', prefixIcon: Icon(Icons.person)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: addressController,
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
-                    decoration: const InputDecoration(labelText: 'Full Address *', prefixIcon: Icon(Icons.location_on)),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(isEditing ? 'Edit Customer' : 'Add New Customer'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: gstController,
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'GSTIN is required' : null,
-                          decoration: const InputDecoration(labelText: 'GSTIN *', prefixIcon: Icon(Icons.verified)),
-                        ),
+                      TextFormField(
+                        controller: nameController,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Customer name is required' : null,
+                        decoration: const InputDecoration(labelText: 'Customer / Business Name *', prefixIcon: Icon(Icons.person)),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          controller: stateCodeController,
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'State code is required' : null,
-                          decoration: const InputDecoration(labelText: 'State Code *', prefixIcon: Icon(Icons.map)),
-                        ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: addressController,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Full Address is required' : null,
+                        decoration: const InputDecoration(labelText: 'Full Address *', prefixIcon: Icon(Icons.location_on)),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: gstController,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return 'GSTIN is required';
+                                final clean = v.trim().toUpperCase();
+                                final gstRegex = RegExp(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$');
+                                if (!gstRegex.hasMatch(clean)) {
+                                  return 'Enter valid 15-digit GSTIN';
+                                }
+                                return null;
+                              },
+                              onChanged: (v) {
+                                final clean = v.trim().toUpperCase();
+                                if (clean.length >= 2) {
+                                  final prefix = clean.substring(0, 2);
+                                  final codeNum = int.tryParse(prefix);
+                                  if (codeNum != null && ((codeNum >= 1 && codeNum <= 37) || codeNum == 97)) {
+                                    if (stateCodeController.text.trim() != prefix) {
+                                      setDialogState(() {
+                                        stateCodeController.text = prefix;
+                                      });
+                                    }
+                                  }
+                                }
+                              },
+                              decoration: const InputDecoration(labelText: 'GSTIN *', prefixIcon: Icon(Icons.verified)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: stateCodeController,
+                              keyboardType: TextInputType.number,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return 'State code is required';
+                                final code = int.tryParse(v.trim());
+                                if (code == null || (code < 1 || (code > 37 && code != 97))) {
+                                  return 'State Code (01-37)';
+                                }
+                                return null;
+                              },
+                              decoration: const InputDecoration(labelText: 'State Code *', prefixIcon: Icon(Icons.map)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: contactPersonController,
+                        decoration: const InputDecoration(labelText: 'Contact Person (Optional)', prefixIcon: Icon(Icons.badge)),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        validator: (v) {
+                          if (v != null && v.trim().isNotEmpty) {
+                            final clean = v.trim().replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
+                            if (clean.length < 10 || clean.length > 12 || int.tryParse(clean) == null) {
+                              return 'Enter valid 10-digit phone number';
+                            }
+                          }
+                          return null;
+                        },
+                        decoration: const InputDecoration(labelText: 'Phone Number (Optional)', prefixIcon: Icon(Icons.phone)),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) {
+                          if (v != null && v.trim().isNotEmpty) {
+                            final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                            if (!emailRegex.hasMatch(v.trim())) {
+                              return 'Enter valid email address';
+                            }
+                          }
+                          return null;
+                        },
+                        decoration: const InputDecoration(labelText: 'Email Address (Optional)', prefixIcon: Icon(Icons.email)),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: openingBalanceController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: (v) {
+                          if (v != null && v.trim().isNotEmpty) {
+                            if (double.tryParse(v.trim()) == null) {
+                              return 'Enter valid numeric balance';
+                            }
+                          }
+                          return null;
+                        },
+                        decoration: const InputDecoration(labelText: 'Opening Balance (₹, Optional)', prefixIcon: Icon(Icons.account_balance_wallet)),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: contactPersonController,
-                    decoration: const InputDecoration(labelText: 'Contact Person (Optional)', prefixIcon: Icon(Icons.badge)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: 'Phone Number (Optional)', prefixIcon: Icon(Icons.phone)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'Email Address (Optional)', prefixIcon: Icon(Icons.email)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: openingBalanceController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Opening Balance (₹, Optional)', prefixIcon: Icon(Icons.account_balance_wallet)),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  final newCust = Customer(
-                    id: customer?.id,
-                    name: nameController.text.trim(),
-                    contactPerson: contactPersonController.text.trim(),
-                    phone: phoneController.text.trim(),
-                    email: emailController.text.trim(),
-                    address: addressController.text.trim(),
-                    gstNumber: gstController.text.trim(),
-                    stateCode: stateCodeController.text.trim(),
-                    openingBalance: double.tryParse(openingBalanceController.text.trim()) ?? 0.0,
-                  );
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      final newCust = Customer(
+                        id: customer?.id,
+                        name: nameController.text.trim(),
+                        contactPerson: contactPersonController.text.trim(),
+                        phone: phoneController.text.trim(),
+                        email: emailController.text.trim(),
+                        address: addressController.text.trim(),
+                        gstNumber: gstController.text.trim(),
+                        stateCode: stateCodeController.text.trim(),
+                        openingBalance: double.tryParse(openingBalanceController.text.trim()) ?? 0.0,
+                      );
 
-                  final provider = Provider.of<CustomerProvider>(context, listen: false);
-                  if (isEditing) {
-                    await provider.updateCustomer(newCust);
-                  } else {
-                    await provider.addCustomer(newCust);
-                  }
+                      final provider = Provider.of<CustomerProvider>(context, listen: false);
+                      if (isEditing) {
+                        await provider.updateCustomer(newCust);
+                      } else {
+                        await provider.addCustomer(newCust);
+                      }
 
-                  if (ctx.mounted) Navigator.pop(ctx);
-                }
-              },
-              child: Text(isEditing ? 'Update' : 'Add'),
-            ),
-          ],
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    }
+                  },
+                  child: Text(isEditing ? 'Update' : 'Add'),
+                ),
+              ],
+            );
+          },
         );
       },
     );

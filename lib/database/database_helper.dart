@@ -8,6 +8,7 @@ import '../models/customer.dart';
 import '../models/product.dart';
 import '../models/invoice.dart';
 import '../models/invoice_item.dart';
+import '../models/customer_payment.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -126,6 +127,7 @@ class DatabaseHelper {
         due_date $textNull,
         status $textNull,
         subtotal $realNull,
+        loading_charges $realNull,
         transport_charges $realNull,
         taxable_base $realNull,
         gst_rate $realNull,
@@ -157,6 +159,21 @@ class DatabaseHelper {
         price $realNull,
         amount $realNull,
         FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // 6. Customer Payments Table
+    await db.execute('''
+      CREATE TABLE customer_payments (
+        id $idType,
+        receipt_number $textNull,
+        customer_id $intNull,
+        customer_name $textNull,
+        payment_date $textNull,
+        amount $realNull,
+        payment_mode $textNull,
+        reference_note $textNull,
+        notes $textNull
       )
     ''');
   }
@@ -195,6 +212,12 @@ class DatabaseHelper {
       CREATE TABLE IF NOT EXISTS invoice_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         invoice_id INTEGER
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS customer_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER
       )
     ''');
 
@@ -252,6 +275,7 @@ class DatabaseHelper {
     await _addColumnIfNotExists(db, 'invoices', 'payment_date', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'status', 'TEXT');
     await _addColumnIfNotExists(db, 'invoices', 'subtotal', 'REAL');
+    await _addColumnIfNotExists(db, 'invoices', 'loading_charges', 'REAL');
     await _addColumnIfNotExists(db, 'invoices', 'transport_charges', 'REAL');
     await _addColumnIfNotExists(db, 'invoices', 'taxable_base', 'REAL');
     await _addColumnIfNotExists(db, 'invoices', 'gst_rate', 'REAL');
@@ -276,6 +300,16 @@ class DatabaseHelper {
     await _addColumnIfNotExists(db, 'invoice_items', 'unit', 'TEXT');
     await _addColumnIfNotExists(db, 'invoice_items', 'price', 'REAL');
     await _addColumnIfNotExists(db, 'invoice_items', 'amount', 'REAL');
+
+    // Customer Payments columns
+    await _addColumnIfNotExists(db, 'customer_payments', 'receipt_number', 'TEXT');
+    await _addColumnIfNotExists(db, 'customer_payments', 'customer_id', 'INTEGER');
+    await _addColumnIfNotExists(db, 'customer_payments', 'customer_name', 'TEXT');
+    await _addColumnIfNotExists(db, 'customer_payments', 'payment_date', 'TEXT');
+    await _addColumnIfNotExists(db, 'customer_payments', 'amount', 'REAL');
+    await _addColumnIfNotExists(db, 'customer_payments', 'payment_mode', 'TEXT');
+    await _addColumnIfNotExists(db, 'customer_payments', 'reference_note', 'TEXT');
+    await _addColumnIfNotExists(db, 'customer_payments', 'notes', 'TEXT');
   }
 
   static Future<void> _addColumnIfNotExists(Database db, String table, String column, String type) async {
@@ -475,5 +509,126 @@ class DatabaseHelper {
       await txn.delete('invoice_items', where: 'invoice_id = ?', whereArgs: [id]);
       return await txn.delete('invoices', where: 'id = ?', whereArgs: [id]);
     });
+  }
+
+  // --- CUSTOMER PAYMENTS CRUD & FIFO KNOCK-OFF ---
+  Future<String> generateNextReceiptNumber() async {
+    final db = await instance.database;
+    final year = DateTime.now().year;
+    final prefix = "REC-$year-";
+    final result = await db.rawQuery(
+      "SELECT receipt_number FROM customer_payments WHERE receipt_number LIKE '$prefix%' ORDER BY id DESC LIMIT 1"
+    );
+
+    if (result.isEmpty) {
+      return "${prefix}001";
+    }
+
+    final lastNumStr = result.first['receipt_number'] as String;
+    final lastSeq = int.tryParse(lastNumStr.replaceAll(prefix, '')) ?? 0;
+    final nextSeq = (lastSeq + 1).toString().padLeft(3, '0');
+    return "$prefix$nextSeq";
+  }
+
+  Future<int> insertCustomerPayment(CustomerPayment payment) async {
+    final db = await instance.database;
+    final id = await db.insert('customer_payments', payment.toMap());
+    await recalculateCustomerInvoiceStatuses(payment.customerId);
+    return id;
+  }
+
+  Future<int> updateCustomerPayment(CustomerPayment payment) async {
+    final db = await instance.database;
+    if (payment.id == null) return 0;
+    final res = await db.update(
+      'customer_payments',
+      payment.toMap(),
+      where: 'id = ?',
+      whereArgs: [payment.id],
+    );
+    await recalculateCustomerInvoiceStatuses(payment.customerId);
+    return res;
+  }
+
+  Future<int> deleteCustomerPayment(int id, int customerId) async {
+    final db = await instance.database;
+    final res = await db.delete('customer_payments', where: 'id = ?', whereArgs: [id]);
+    await recalculateCustomerInvoiceStatuses(customerId);
+    return res;
+  }
+
+  Future<List<CustomerPayment>> getPaymentsForCustomer(int customerId) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'customer_payments',
+      where: 'customer_id = ?',
+      whereArgs: [customerId],
+      orderBy: 'id ASC',
+    );
+    return result.map((map) => CustomerPayment.fromMap(map)).toList();
+  }
+
+  Future<List<CustomerPayment>> getAllPayments() async {
+    final db = await instance.database;
+    final result = await db.query('customer_payments', orderBy: 'id DESC');
+    return result.map((map) => CustomerPayment.fromMap(map)).toList();
+  }
+
+  Future<void> recalculateCustomerInvoiceStatuses(int customerId) async {
+    final db = await instance.database;
+
+    // 1. Fetch total payments received for this customer
+    final paymentsRes = await db.rawQuery(
+      'SELECT SUM(amount) as total_paid FROM customer_payments WHERE customer_id = ?',
+      [customerId],
+    );
+    double totalPaidPool = (paymentsRes.first['total_paid'] as num?)?.toDouble() ?? 0.0;
+
+    // 2. Fetch all invoices for this customer ordered by date & ID (oldest first)
+    final invoicesRes = await db.query(
+      'invoices',
+      where: 'customer_id = ?',
+      whereArgs: [customerId],
+      orderBy: 'id ASC',
+    );
+
+    // 3. FIFO Auto Knock-off Allocation
+    double remainingPool = totalPaidPool;
+
+    for (var invMap in invoicesRes) {
+      final int invId = invMap['id'] as int;
+      final double grandTotal = (invMap['grand_total'] as num?)?.toDouble() ?? 0.0;
+
+      String status = 'Unpaid';
+      double rec = 0.0;
+      double bal = grandTotal;
+
+      if (remainingPool >= grandTotal) {
+        status = 'Paid';
+        rec = grandTotal;
+        bal = 0.0;
+        remainingPool -= grandTotal;
+      } else if (remainingPool > 0) {
+        status = 'Partially Paid';
+        rec = remainingPool;
+        bal = grandTotal - remainingPool;
+        remainingPool = 0.0;
+      } else {
+        status = 'Unpaid';
+        rec = 0.0;
+        bal = grandTotal;
+      }
+
+      await db.update(
+        'invoices',
+        {
+          'status': status,
+          'received_amount': rec,
+          'balance_amount': bal,
+        },
+        where: 'id = ?',
+        whereArgs: [invId],
+      );
+    }
   }
 }

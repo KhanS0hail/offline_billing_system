@@ -6,8 +6,61 @@ import '../models/invoice.dart';
 import 'create_invoice_screen.dart';
 import 'pdf_preview_screen.dart';
 
-class InvoicesScreen extends StatelessWidget {
+class InvoicesScreen extends StatefulWidget {
   const InvoicesScreen({super.key});
+
+  @override
+  State<InvoicesScreen> createState() => _InvoicesScreenState();
+}
+
+class _InvoicesScreenState extends State<InvoicesScreen> {
+  String _searchQuery = '';
+  String _dateFilterMode = 'All Time'; // 'All Time', 'This Month', 'This FY', 'Custom Range'
+  DateTime? _customStartDate;
+  DateTime? _customEndDate;
+  String _statusFilter = 'All'; // 'All', 'Unpaid', 'Partially Paid', 'Paid'
+  String _sortOrder = 'Newest First'; // 'Newest First', 'Oldest First', 'Amount: High to Low', 'Amount: Low to High', 'Invoice #: A-Z'
+
+  DateTime? _parseInvoiceDate(String dateStr) {
+    try {
+      final parts = dateStr.split('-');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final monthStr = parts[1];
+        final year = int.parse(parts[2]);
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        final month = months.indexOf(monthStr) + 1;
+        if (month > 0) return DateTime(year, month, day);
+      }
+    } catch (_) {}
+    try {
+      return DateTime.parse(dateStr);
+    } catch (_) {}
+    return null;
+  }
+
+  bool _isDateInFilter(DateTime? date) {
+    if (date == null) return true;
+
+    final now = DateTime.now();
+    if (_dateFilterMode == 'This Month') {
+      return date.year == now.year && date.month == now.month;
+    } else if (_dateFilterMode == 'This FY') {
+      int startYear = now.month >= 4 ? now.year : now.year - 1;
+      final fyStart = DateTime(startYear, 4, 1);
+      final fyEnd = DateTime(startYear + 1, 3, 31, 23, 59, 59);
+      return date.isAfter(fyStart.subtract(const Duration(seconds: 1))) && date.isBefore(fyEnd.add(const Duration(seconds: 1)));
+    } else if (_dateFilterMode == 'Custom Range') {
+      if (_customStartDate != null && date.isBefore(DateTime(_customStartDate!.year, _customStartDate!.month, _customStartDate!.day))) {
+        return false;
+      }
+      if (_customEndDate != null && date.isAfter(DateTime(_customEndDate!.year, _customEndDate!.month, _customEndDate!.day, 23, 59, 59))) {
+        return false;
+      }
+      return true;
+    }
+    return true; // All Time
+  }
 
   void _confirmDelete(BuildContext context, Invoice invoice) {
     showDialog(
@@ -32,53 +85,87 @@ class InvoicesScreen extends StatelessWidget {
     );
   }
 
+  String _monthName(int m) {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months[m - 1];
+  }
+
   void _showUpdatePaymentDialog(BuildContext context, Invoice invoice) {
     String selectedStatus = invoice.status;
     final receivedController = TextEditingController(text: invoice.receivedAmount.toString());
+    DateTime selectedPaymentDate = _parseInvoiceDate(invoice.paymentDate ?? invoice.date) ?? DateTime.now();
 
     showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final formattedDateStr = "${selectedPaymentDate.day.toString().padLeft(2, '0')}-${_monthName(selectedPaymentDate.month)}-${selectedPaymentDate.year}";
+
             return AlertDialog(
               title: Text('Update Payment: ${invoice.invoiceNumber}'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Total Bill: ₹${invoice.grandTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  const Text('Payment Status:'),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: selectedStatus,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    items: ['Unpaid', 'Partially Paid', 'Paid']
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() {
-                          selectedStatus = val;
-                          if (val == 'Paid') {
-                            receivedController.text = invoice.grandTotal.toString();
-                          } else if (val == 'Unpaid') {
-                            receivedController.text = '0.0';
-                          }
-                        });
-                      }
-                    },
-                  ),
-                  if (selectedStatus == 'Partially Paid') ...[
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Total Bill: ₹${invoice.grandTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: receivedController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Received Amount (₹)', border: OutlineInputBorder()),
+                    const Text('Payment Status:'),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: selectedStatus,
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                      items: ['Unpaid', 'Partially Paid', 'Paid']
+                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            selectedStatus = val;
+                            if (val == 'Paid') {
+                              receivedController.text = invoice.grandTotal.toString();
+                            } else if (val == 'Unpaid') {
+                              receivedController.text = '0.0';
+                            }
+                          });
+                        }
+                      },
                     ),
+                    if (selectedStatus == 'Partially Paid') ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: receivedController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Received Amount (₹)', border: OutlineInputBorder()),
+                      ),
+                    ],
+                    if (selectedStatus == 'Paid' || selectedStatus == 'Partially Paid') ...[
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedPaymentDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2035),
+                          );
+                          if (picked != null) {
+                            setDialogState(() => selectedPaymentDate = picked);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Payment Received Date',
+                            prefixIcon: Icon(Icons.calendar_today),
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Text(formattedDateStr),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -90,12 +177,17 @@ class InvoicesScreen extends StatelessWidget {
                     double bal = invoice.grandTotal - rec;
                     if (bal < 0) bal = 0.0;
 
+                    final paymentDateToSave = (selectedStatus == 'Paid' || selectedStatus == 'Partially Paid')
+                        ? formattedDateStr
+                        : null;
+
                     if (invoice.id != null) {
                       await Provider.of<InvoiceProvider>(context, listen: false).updateInvoicePayment(
                         invoice.id!,
                         selectedStatus,
                         received: rec,
                         balance: bal,
+                        paymentDate: paymentDateToSave,
                       );
                     }
                     if (ctx.mounted) Navigator.pop(ctx);
@@ -103,6 +195,195 @@ class InvoicesScreen extends StatelessWidget {
                   child: const Text('Update Payment'),
                 ),
               ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.82,
+              ),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Filter & Sort Invoices',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setSheetState(() {
+                              _dateFilterMode = 'All Time';
+                              _customStartDate = null;
+                              _customEndDate = null;
+                              _statusFilter = 'All';
+                              _sortOrder = 'Newest First';
+                            });
+                            setState(() {});
+                          },
+                          child: const Text('Reset All'),
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    const SizedBox(height: 12),
+
+                    // 1. DATE RANGE FILTER
+                    const Text('Date Range Period', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _dateFilterMode,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        prefixIcon: Icon(Icons.date_range),
+                      ),
+                      items: ['All Time', 'This Month', 'This FY', 'Custom Range']
+                          .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setSheetState(() {
+                            _dateFilterMode = val;
+                          });
+                        }
+                      },
+                    ),
+                    if (_dateFilterMode == 'Custom Range') ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.calendar_month, size: 16),
+                              label: Text(_customStartDate != null ? "${_customStartDate!.day}/${_customStartDate!.month}/${_customStartDate!.year}" : "Start Date"),
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _customStartDate ?? DateTime.now(),
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2035),
+                                );
+                                if (picked != null) {
+                                  setSheetState(() => _customStartDate = picked);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.calendar_month, size: 16),
+                              label: Text(_customEndDate != null ? "${_customEndDate!.day}/${_customEndDate!.month}/${_customEndDate!.year}" : "End Date"),
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _customEndDate ?? DateTime.now(),
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2035),
+                                );
+                                if (picked != null) {
+                                  setSheetState(() => _customEndDate = picked);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+
+                    // 2. PAYMENT STATUS FILTER
+                    const Text('Payment Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _statusFilter,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        prefixIcon: Icon(Icons.payments),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: 'All', child: Text('All Statuses')),
+                        const DropdownMenuItem(value: 'Unpaid', child: Text('Unpaid Only')),
+                        const DropdownMenuItem(value: 'Partially Paid', child: Text('Partially Paid Only')),
+                        const DropdownMenuItem(value: 'Paid', child: Text('Paid Only')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setSheetState(() => _statusFilter = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 3. SORTING ORDER
+                    const Text('Sort By', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _sortOrder,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        prefixIcon: Icon(Icons.sort),
+                      ),
+                      items: [
+                        'Newest First',
+                        'Oldest First',
+                        'Amount: High to Low',
+                        'Amount: Low to High',
+                        'Invoice #: A-Z',
+                      ].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setSheetState(() => _sortOrder = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 24),
+
+                    // APPLY BUTTON
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          setState(() {});
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('Apply Filters & Sort', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         );
@@ -118,21 +399,71 @@ class InvoicesScreen extends StatelessWidget {
       ),
       body: Consumer<InvoiceProvider>(
         builder: (context, provider, child) {
-          final invoices = provider.invoices;
+          // 1. FILTERING INVOICE LIST
+          List<Invoice> filteredInvoices = provider.invoices.where((inv) {
+            // Search Query Filter
+            if (_searchQuery.isNotEmpty) {
+              final query = _searchQuery.toLowerCase();
+              final numMatch = inv.invoiceNumber.toLowerCase().contains(query);
+              final poMatch = (inv.poNumber ?? '').toLowerCase().contains(query);
+              final custMatch = (inv.customerName ?? '').toLowerCase().contains(query);
+              final gstinMatch = (inv.customerGstin ?? '').toLowerCase().contains(query);
+              if (!numMatch && !poMatch && !custMatch && !gstinMatch) return false;
+            }
 
+            // Payment Status Filter
+            if (_statusFilter != 'All' && inv.status != _statusFilter) {
+              return false;
+            }
+
+            // Date Period Filter
+            final dt = _parseInvoiceDate(inv.date);
+            if (!_isDateInFilter(dt)) {
+              return false;
+            }
+
+            return true;
+          }).toList();
+
+          // 2. SORTING INVOICE LIST
+          filteredInvoices.sort((a, b) {
+            if (_sortOrder == 'Oldest First') {
+              final dtA = _parseInvoiceDate(a.date) ?? DateTime(2000);
+              final dtB = _parseInvoiceDate(b.date) ?? DateTime(2000);
+              return dtA.compareTo(dtB);
+            } else if (_sortOrder == 'Amount: High to Low') {
+              return b.grandTotal.compareTo(a.grandTotal);
+            } else if (_sortOrder == 'Amount: Low to High') {
+              return a.grandTotal.compareTo(b.grandTotal);
+            } else if (_sortOrder == 'Invoice #: A-Z') {
+              return a.invoiceNumber.compareTo(b.invoiceNumber);
+            } else {
+              // Default: Newest First
+              final dtA = _parseInvoiceDate(a.date) ?? DateTime(2000);
+              final dtB = _parseInvoiceDate(b.date) ?? DateTime(2000);
+              return dtB.compareTo(dtA);
+            }
+          });
+
+          // 3. STATS RE-CALCULATION BASED ON FILTERED LIST
           double totalSales = 0.0;
           double paidAmount = 0.0;
           double unpaidAmount = 0.0;
 
-          for (var inv in provider.invoices) {
+          for (var inv in filteredInvoices) {
             totalSales += inv.grandTotal;
             paidAmount += inv.receivedAmount;
             unpaidAmount += inv.balanceAmount;
           }
 
+          int activeFilterCount = 0;
+          if (_dateFilterMode != 'All Time') activeFilterCount++;
+          if (_statusFilter != 'All') activeFilterCount++;
+          if (_sortOrder != 'Newest First') activeFilterCount++;
+
           return Column(
             children: [
-              // 1. OVERVIEW STATS CARD
+              // 1. OVERVIEW STATS CARD (DYNAMICALLY SYNCED)
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -170,30 +501,70 @@ class InvoicesScreen extends StatelessWidget {
                 ),
               ),
 
-              // 2. SEARCH & FILTER BAR
+              // 2. 70% SEARCH / 30% FILTER BUTTON ROW
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
+                child: Row(
                   children: [
-                    TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search by Invoice # or Customer...',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    // 70% Search Input
+                    Expanded(
+                      flex: 7,
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Search #, PO, Customer...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                          isDense: true,
+                        ),
+                        onChanged: (v) {
+                          setState(() {
+                            _searchQuery = v;
+                          });
+                        },
                       ),
-                      onChanged: (v) => provider.setSearchQuery(v),
                     ),
-                    const SizedBox(height: 8),
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'All', label: Text('All')),
-                        ButtonSegment(value: 'Unpaid', label: Text('Unpaid')),
-                        ButtonSegment(value: 'Partially Paid', label: Text('Partial')),
-                        ButtonSegment(value: 'Paid', label: Text('Paid')),
-                      ],
-                      selected: {provider.filterStatus},
-                      onSelectionChanged: (s) => provider.setFilterStatus(s.first),
+                    const SizedBox(width: 8),
+
+                    // 30% Filter & Sort Action Button
+                    Expanded(
+                      flex: 3,
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            side: BorderSide(
+                              color: activeFilterCount > 0 ? Theme.of(context).colorScheme.primary : Colors.grey.shade400,
+                              width: activeFilterCount > 0 ? 1.8 : 1.0,
+                            ),
+                          ),
+                          onPressed: () => _showFilterBottomSheet(context),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.tune,
+                                size: 18,
+                                color: activeFilterCount > 0 ? Theme.of(context).colorScheme.primary : Colors.grey.shade700,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  activeFilterCount > 0 ? 'Filter ($activeFilterCount)' : 'Filter',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: activeFilterCount > 0 ? FontWeight.bold : FontWeight.normal,
+                                    color: activeFilterCount > 0 ? Theme.of(context).colorScheme.primary : Colors.grey.shade800,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -204,22 +575,22 @@ class InvoicesScreen extends StatelessWidget {
               Expanded(
                 child: provider.isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : invoices.isEmpty
+                    : filteredInvoices.isEmpty
                         ? const Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.receipt_outlined, size: 64, color: Colors.grey),
                                 SizedBox(height: 16),
-                                Text('No invoices found. Click + to create an invoice!'),
+                                Text('No matching invoices found.'),
                               ],
                             ),
                           )
                         : ListView.builder(
-                            itemCount: invoices.length,
+                            itemCount: filteredInvoices.length,
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
                             itemBuilder: (context, index) {
-                              final inv = invoices[index];
+                              final inv = filteredInvoices[index];
                               final isPaid = inv.status == 'Paid';
                               final isPartial = inv.status == 'Partially Paid';
 

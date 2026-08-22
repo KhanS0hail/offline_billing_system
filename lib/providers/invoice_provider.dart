@@ -26,6 +26,7 @@ class InvoiceProvider extends ChangeNotifier {
   DateTime _invoiceDate = DateTime.now();
   DateTime _dueDate = DateTime.now().add(const Duration(days: 15)); // Default 15 days
   List<InvoiceItem> _draftItems = [];
+  double _loadingCharges = 0.0;
   double _transportCharges = 0.0;
   double _gstRate = 18.0;
   double _discountAmount = 0.0;
@@ -68,6 +69,7 @@ class InvoiceProvider extends ChangeNotifier {
   DateTime get invoiceDate => _invoiceDate;
   DateTime get dueDate => _dueDate;
   List<InvoiceItem> get draftItems => _draftItems;
+  double get loadingCharges => _loadingCharges;
   double get transportCharges => _transportCharges;
   double get gstRate => _gstRate;
   double get discountAmount => _discountAmount;
@@ -111,6 +113,7 @@ class InvoiceProvider extends ChangeNotifier {
     _invoiceDate = DateTime.now();
     _dueDate = DateTime.now().add(const Duration(days: 15));
     _draftItems = [];
+    _loadingCharges = 0.0;
     _transportCharges = 0.0;
     _gstRate = 18.0;
     _discountAmount = 0.0;
@@ -172,6 +175,7 @@ class InvoiceProvider extends ChangeNotifier {
     }
 
     _draftItems = List.from(invoice.items);
+    _loadingCharges = invoice.loadingCharges;
     _transportCharges = invoice.transportCharges;
     _gstRate = invoice.gstRate;
     _discountAmount = invoice.discountAmount;
@@ -220,6 +224,11 @@ class InvoiceProvider extends ChangeNotifier {
 
   void setDueDate(DateTime date) {
     _dueDate = date;
+    notifyListeners();
+  }
+
+  void setLoadingCharges(double charges) {
+    _loadingCharges = charges;
     notifyListeners();
   }
 
@@ -287,6 +296,7 @@ class InvoiceProvider extends ChangeNotifier {
       items: _draftItems,
       companyStateCode: company?.stateCode,
       customerStateCode: _selectedCustomer?.stateCode,
+      loadingCharges: _loadingCharges,
       transportCharges: _transportCharges,
       gstRate: _gstRate,
       discountAmount: _discountAmount,
@@ -326,6 +336,7 @@ class InvoiceProvider extends ChangeNotifier {
       paymentDate: (_paymentStatus == 'Paid' || _paymentStatus == 'Partially Paid') ? formattedDate : null,
       status: _paymentStatus,
       subtotal: totals.subtotal,
+      loadingCharges: totals.loadingCharges,
       transportCharges: totals.transportCharges,
       taxableBase: totals.taxableBase,
       gstRate: totals.gstRate,

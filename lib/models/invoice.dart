@@ -26,6 +26,7 @@ class Invoice {
   final String? paymentDate; // Date when payment was received
   final String status; // 'Unpaid', 'Paid', 'Partially Paid'
   final double subtotal;
+  final double loadingCharges;
   final double transportCharges;
   final double taxableBase;
   final double gstRate;
@@ -64,6 +65,7 @@ class Invoice {
     this.paymentDate,
     this.status = 'Unpaid',
     this.subtotal = 0.0,
+    this.loadingCharges = 0.0,
     this.transportCharges = 0.0,
     this.taxableBase = 0.0,
     this.gstRate = 18.0,
@@ -105,6 +107,7 @@ class Invoice {
       'payment_date': paymentDate,
       'status': status,
       'subtotal': subtotal,
+      'loading_charges': loadingCharges,
       'transport_charges': transportCharges,
       'taxable_base': taxableBase,
       'gst_rate': gstRate,
@@ -150,6 +153,7 @@ class Invoice {
       paymentDate: map['payment_date'],
       status: status,
       subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
+      loadingCharges: (map['loading_charges'] as num?)?.toDouble() ?? 0.0,
       transportCharges: (map['transport_charges'] as num?)?.toDouble() ?? 0.0,
       taxableBase: (map['taxable_base'] as num?)?.toDouble() ?? 0.0,
       gstRate: (map['gst_rate'] as num?)?.toDouble() ?? 18.0,

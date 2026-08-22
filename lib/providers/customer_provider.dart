@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../database/database_helper.dart';
 import '../models/customer.dart';
+import '../models/customer_payment.dart';
 
 class CustomerProvider extends ChangeNotifier {
   List<Customer> _customers = [];
@@ -51,5 +52,24 @@ class CustomerProvider extends ChangeNotifier {
   Future<void> deleteCustomer(int id) async {
     await DatabaseHelper.instance.deleteCustomer(id);
     await loadCustomers();
+  }
+
+  // Payments Helper
+  Future<String> generateNextReceiptNumber() async {
+    return await DatabaseHelper.instance.generateNextReceiptNumber();
+  }
+
+  Future<List<CustomerPayment>> getPaymentsForCustomer(int customerId) async {
+    return await DatabaseHelper.instance.getPaymentsForCustomer(customerId);
+  }
+
+  Future<void> addPayment(CustomerPayment payment) async {
+    await DatabaseHelper.instance.insertCustomerPayment(payment);
+    notifyListeners();
+  }
+
+  Future<void> deletePayment(int paymentId, int customerId) async {
+    await DatabaseHelper.instance.deleteCustomerPayment(paymentId, customerId);
+    notifyListeners();
   }
 }

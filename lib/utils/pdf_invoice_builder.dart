@@ -109,14 +109,14 @@ class PdfInvoiceBuilder {
         margin: const pw.EdgeInsets.all(32),
         build: (pw.Context context) {
           return [
-            // 1. TOP HEADER BLOCK (70% LEFT / 30% RIGHT SPLIT WITH 5PT RIGHT PADDING ON LEFT COL)
+            // 1. TOP HEADER BLOCK (65% LEFT / 35% RIGHT SPLIT WITH 5PT RIGHT PADDING ON LEFT COL)
             pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                // LEFT SIDE: LOGO + TITLE + ADDRESS BLOCK (70% width)
+                // LEFT SIDE: LOGO + TITLE + ADDRESS BLOCK (65% width)
                 pw.Expanded(
-                  flex: 70,
+                  flex: 65,
                   child: pw.Padding(
                     padding: const pw.EdgeInsets.only(right: 5),
                     child: pw.Column(
@@ -154,7 +154,7 @@ class PdfInvoiceBuilder {
                         ),
                         pw.SizedBox(height: 10),
 
-                        // Address, Phone (Separate Row), Email (Separate Row), GSTIN, State
+                        // Address
                         if (company?.address != null && company!.address!.isNotEmpty)
                           pw.RichText(
                             text: pw.TextSpan(
@@ -164,24 +164,24 @@ class PdfInvoiceBuilder {
                               ],
                             ),
                           ),
-                        if (company?.phone != null && company!.phone!.isNotEmpty) ...[
+                        // Combined Phone & Email on the same line
+                        if ((company?.phone != null && company!.phone!.isNotEmpty) ||
+                            (company?.email != null && company!.email!.isNotEmpty)) ...[
                           pw.SizedBox(height: 2),
                           pw.RichText(
                             text: pw.TextSpan(
                               children: [
-                                pw.TextSpan(text: 'Phone: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
-                                pw.TextSpan(text: '${company.phone}', style: const pw.TextStyle(fontSize: 9.5)),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (company?.email != null && company!.email!.isNotEmpty) ...[
-                          pw.SizedBox(height: 2),
-                          pw.RichText(
-                            text: pw.TextSpan(
-                              children: [
-                                pw.TextSpan(text: 'Email: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
-                                pw.TextSpan(text: '${company.email}', style: const pw.TextStyle(fontSize: 9.5)),
+                                if (company?.phone != null && company!.phone!.isNotEmpty) ...[
+                                  pw.TextSpan(text: 'Phone: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                                  pw.TextSpan(text: '${company!.phone}', style: const pw.TextStyle(fontSize: 9.5)),
+                                ],
+                                if (company?.phone != null && company!.phone!.isNotEmpty &&
+                                    company?.email != null && company!.email!.isNotEmpty)
+                                  pw.TextSpan(text: '  |  ', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                                if (company?.email != null && company!.email!.isNotEmpty) ...[
+                                  pw.TextSpan(text: 'Email: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5)),
+                                  pw.TextSpan(text: '${company!.email}', style: const pw.TextStyle(fontSize: 9.5)),
+                                ],
                               ],
                             ),
                           ),
@@ -215,9 +215,9 @@ class PdfInvoiceBuilder {
 
                 pw.SizedBox(width: 10),
 
-                // RIGHT SIDE: TAX INVOICE TITLE (16pt, weight 800) + METADATA TABLE (30% width)
+                // RIGHT SIDE: TAX INVOICE TITLE (16pt, weight 800) + METADATA TABLE (35% width)
                 pw.Expanded(
-                  flex: 30,
+                  flex: 35,
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
@@ -574,8 +574,10 @@ class PdfInvoiceBuilder {
                         child: pw.Column(
                           children: [
                             _calcRow('Subtotal', invoice.subtotal.toStringAsFixed(2)),
+                            if (invoice.loadingCharges > 0)
+                              _calcRow('Loading / Packing', '+ Rs ${invoice.loadingCharges.toStringAsFixed(2)}'),
                             if (invoice.transportCharges > 0)
-                              _calcRow('Transport / Charges', '+ Rs ${invoice.transportCharges.toStringAsFixed(2)}'),
+                              _calcRow('Transport / Freight', '+ Rs ${invoice.transportCharges.toStringAsFixed(2)}'),
                             _calcRow('Taxable Base', invoice.taxableBase.toStringAsFixed(2), isBold: true),
                             pw.Divider(thickness: 0.5, color: PdfColors.grey400),
                             if (isIntraState) ...[

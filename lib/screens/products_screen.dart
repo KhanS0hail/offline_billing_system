@@ -42,7 +42,15 @@ class ProductsScreen extends StatelessWidget {
                           Expanded(
                             child: TextFormField(
                               controller: hsnController,
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'HSN code is required' : null,
+                              keyboardType: TextInputType.number,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return 'HSN code is required';
+                                final clean = v.trim();
+                                if (!RegExp(r'^\d{2,8}$').hasMatch(clean)) {
+                                  return 'Enter 2-8 digit HSN code';
+                                }
+                                return null;
+                              },
                               decoration: const InputDecoration(labelText: 'HSN / SAC Code *', prefixIcon: Icon(Icons.qr_code)),
                             ),
                           ),

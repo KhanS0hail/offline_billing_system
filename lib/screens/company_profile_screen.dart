@@ -294,9 +294,41 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildTextField(_phoneController, 'Phone Number', Icons.phone, keyboardType: TextInputType.phone)),
+                      Expanded(
+                        child: _buildTextField(
+                          _phoneController,
+                          'Phone Number',
+                          Icons.phone,
+                          keyboardType: TextInputType.phone,
+                          validator: (v) {
+                            if (v != null && v.trim().isNotEmpty) {
+                              final clean = v.trim().replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
+                              if (clean.length < 10 || clean.length > 12 || int.tryParse(clean) == null) {
+                                return 'Enter valid 10-digit phone number';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildTextField(_emailController, 'Email Address', Icons.email, keyboardType: TextInputType.emailAddress)),
+                      Expanded(
+                        child: _buildTextField(
+                          _emailController,
+                          'Email Address',
+                          Icons.email,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (v) {
+                            if (v != null && v.trim().isNotEmpty) {
+                              final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                              if (!emailRegex.hasMatch(v.trim())) {
+                                return 'Enter valid email (e.g. name@domain.com)';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -304,9 +336,55 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildTextField(_gstController, 'GSTIN Number', Icons.verified, isRequired: true)),
+                      Expanded(
+                        child: _buildTextField(
+                          _gstController,
+                          'GSTIN Number',
+                          Icons.verified,
+                          isRequired: true,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'GSTIN Number is required';
+                            final clean = v.trim().toUpperCase();
+                            final gstRegex = RegExp(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$');
+                            if (!gstRegex.hasMatch(clean)) {
+                              return 'Enter valid 15-digit GSTIN (e.g. 27AAAAA0000A1Z5)';
+                            }
+                            return null;
+                          },
+                          onChanged: (v) {
+                            final clean = v.trim().toUpperCase();
+                            if (clean.length >= 2) {
+                              final prefix = clean.substring(0, 2);
+                              final codeNum = int.tryParse(prefix);
+                              if (codeNum != null && ((codeNum >= 1 && codeNum <= 37) || codeNum == 97)) {
+                                if (_stateCodeController.text.trim() != prefix) {
+                                  setState(() {
+                                    _stateCodeController.text = prefix;
+                                  });
+                                }
+                              }
+                            }
+                          },
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildTextField(_stateCodeController, 'State Code (e.g. 27)', Icons.map, isRequired: true)),
+                      Expanded(
+                        child: _buildTextField(
+                          _stateCodeController,
+                          'State Code (e.g. 27)',
+                          Icons.map,
+                          isRequired: true,
+                          keyboardType: TextInputType.number,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'State Code is required';
+                            final code = int.tryParse(v.trim());
+                            if (code == null || (code < 1 || (code > 37 && code != 97))) {
+                              return 'Enter valid 2-digit State Code (01-37)';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -323,17 +401,78 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildTextField(_accountNoController, 'Account Number', Icons.numbers, isRequired: true)),
+                      Expanded(
+                        child: _buildTextField(
+                          _accountNoController,
+                          'Account Number',
+                          Icons.numbers,
+                          isRequired: true,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'Account Number is required';
+                            final clean = v.trim();
+                            if (clean.length < 8 || clean.length > 20) {
+                              return 'Account number must be 8-20 digits';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildTextField(_ifscController, 'IFSC Code', Icons.code, isRequired: true)),
+                      Expanded(
+                        child: _buildTextField(
+                          _ifscController,
+                          'IFSC Code',
+                          Icons.code,
+                          isRequired: true,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'IFSC Code is required';
+                            final clean = v.trim().toUpperCase();
+                            final ifscRegex = RegExp(r'^[A-Z]{4}0[A-Z0-9]{6}$');
+                            if (!ifscRegex.hasMatch(clean)) {
+                              return 'Enter valid 11-char IFSC code (e.g. SBIN0001234)';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildTextField(_upiIdController, 'UPI ID', Icons.qr_code_2)),
+                      Expanded(
+                        child: _buildTextField(
+                          _upiIdController,
+                          'UPI ID',
+                          Icons.qr_code_2,
+                          validator: (v) {
+                            if (v != null && v.trim().isNotEmpty) {
+                              final upiRegex = RegExp(r'^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$');
+                              if (!upiRegex.hasMatch(v.trim())) {
+                                return 'Enter valid UPI ID (e.g. name@upi)';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildTextField(_paymentDurationController, 'Default Payment Terms (Days)', Icons.timer, keyboardType: TextInputType.number)),
+                      Expanded(
+                        child: _buildTextField(
+                          _paymentDurationController,
+                          'Default Payment Terms (Days)',
+                          Icons.timer,
+                          keyboardType: TextInputType.number,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'Payment terms days is required';
+                            final days = int.tryParse(v.trim());
+                            if (days == null || days < 1 || days > 365) {
+                              return 'Enter valid days (1 to 365)';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -570,19 +709,23 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
     bool isRequired = false,
+    String? Function(String?)? validator,
+    ValueChanged<String>? onChanged,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      validator: isRequired
-          ? (value) {
-              if (value == null || value.trim().isEmpty) {
-                return '$label is required';
-              }
-              return null;
-            }
-          : null,
+      onChanged: onChanged,
+      validator: validator ??
+          (isRequired
+              ? (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return '$label is required';
+                  }
+                  return null;
+                }
+              : null),
       decoration: InputDecoration(
         labelText: isRequired ? '$label *' : label,
         prefixIcon: Icon(icon),
