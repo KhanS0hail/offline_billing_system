@@ -1056,7 +1056,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                           LayoutBuilder(
                             builder: (context, constraints) {
                               final parentWidth = constraints.maxWidth;
-                              const double baseTotal = 856.0;
+                              const double baseTotal = 950.0;
                               final double actualWidth = parentWidth > baseTotal ? parentWidth : baseTotal;
                               final double extra = actualWidth > baseTotal ? (actualWidth - baseTotal) : 0.0;
 
