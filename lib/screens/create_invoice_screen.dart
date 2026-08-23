@@ -1056,7 +1056,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                           LayoutBuilder(
                             builder: (context, constraints) {
                               final parentWidth = constraints.maxWidth;
-                              const double baseTotal = 950.0;
+                              const double baseTotal = 980.0;
                               final double actualWidth = parentWidth > baseTotal ? parentWidth : baseTotal;
                               final double extra = actualWidth > baseTotal ? (actualWidth - baseTotal) : 0.0;
 
@@ -1064,7 +1064,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                               final double sizeW = 95 + (extra * 0.20);
                               final double hsnW = 85 + (extra * 0.15);
                               final double rateW = 90 + (extra * 0.15);
-                              final double amountW = 100 + (extra * 0.15);
+                              final double amountW = 105 + (extra * 0.15);
 
                               return SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
@@ -1102,7 +1102,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                             const SizedBox(width: 6),
                                             SizedBox(width: amountW, child: const Text('Taxable Value (₹)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
                                             const SizedBox(width: 6),
-                                            const SizedBox(width: 36, child: Text('', style: TextStyle(color: Colors.white))),
+                                            const SizedBox(width: 44, child: Text('', style: TextStyle(color: Colors.white))),
                                           ],
                                         ),
                                       ),
@@ -1967,6 +1967,7 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
             tooltip: 'Remove Item',
             onPressed: widget.onDelete,
           ),
+          const SizedBox(width: 12),
         ],
       ),
     );
