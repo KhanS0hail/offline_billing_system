@@ -277,6 +277,11 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addDraftItem(InvoiceItem item) {
+    _draftItems.add(item);
+    notifyListeners();
+  }
+
   void updateDraftItem(int index, InvoiceItem updatedItem) {
     if (index >= 0 && index < _draftItems.length) {
       _draftItems[index] = updatedItem;
