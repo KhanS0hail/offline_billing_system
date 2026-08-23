@@ -1408,6 +1408,12 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
   late String _selectedBillingUnit;
   late TextEditingController _priceController;
 
+  final FocusNode _priceFocusNode = FocusNode();
+  final FocusNode _qtyFocusNode = FocusNode();
+  final FocusNode _hsnFocusNode = FocusNode();
+  final FocusNode _sizeFocusNode = FocusNode();
+  final FocusNode _pcsNumFocusNode = FocusNode();
+
   final List<String> _pcsUnitsList = ['Pcs', 'Nag', 'Bdl', 'Box', 'Set', 'Pack', 'Mtr', 'Kg'];
 
   @override
@@ -1434,6 +1440,22 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
     _qtyController = TextEditingController(text: widget.item.quantity.toString());
     _selectedBillingUnit = widget.availableUnits.contains(widget.item.unit) ? widget.item.unit : widget.availableUnits.first;
     _priceController = TextEditingController(text: widget.item.price == 0 ? '' : widget.item.price.toString());
+
+    _priceFocusNode.addListener(_onFocusChange);
+    _qtyFocusNode.addListener(_onFocusChange);
+    _hsnFocusNode.addListener(_onFocusChange);
+    _sizeFocusNode.addListener(_onFocusChange);
+    _pcsNumFocusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_priceFocusNode.hasFocus &&
+        !_qtyFocusNode.hasFocus &&
+        !_hsnFocusNode.hasFocus &&
+        !_sizeFocusNode.hasFocus &&
+        !_pcsNumFocusNode.hasFocus) {
+      _notifyChange();
+    }
   }
 
   @override
@@ -1458,6 +1480,18 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
 
   @override
   void dispose() {
+    _priceFocusNode.removeListener(_onFocusChange);
+    _qtyFocusNode.removeListener(_onFocusChange);
+    _hsnFocusNode.removeListener(_onFocusChange);
+    _sizeFocusNode.removeListener(_onFocusChange);
+    _pcsNumFocusNode.removeListener(_onFocusChange);
+
+    _priceFocusNode.dispose();
+    _qtyFocusNode.dispose();
+    _hsnFocusNode.dispose();
+    _sizeFocusNode.dispose();
+    _pcsNumFocusNode.dispose();
+
     _nameController.dispose();
     _hsnController.dispose();
     _sizeController.dispose();
@@ -1759,7 +1793,10 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
             width: widget.hsnWidth,
             child: TextField(
               controller: _hsnController,
-              onChanged: (_) => _notifyChange(),
+              focusNode: _hsnFocusNode,
+              onChanged: (_) => setState(() {}),
+              onEditingComplete: () => _notifyChange(),
+              onSubmitted: (_) => _notifyChange(),
               style: const TextStyle(fontSize: 13),
               decoration: const InputDecoration(
                 hintText: 'HSN *',
@@ -1776,7 +1813,10 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
             width: widget.sizeWidth,
             child: TextField(
               controller: _sizeController,
-              onChanged: (_) => _notifyChange(),
+              focusNode: _sizeFocusNode,
+              onChanged: (_) => setState(() {}),
+              onEditingComplete: () => _notifyChange(),
+              onSubmitted: (_) => _notifyChange(),
               style: const TextStyle(fontSize: 13),
               decoration: const InputDecoration(
                 hintText: 'Size',
@@ -1793,8 +1833,11 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
             width: 70,
             child: TextField(
               controller: _pcsNumController,
+              focusNode: _pcsNumFocusNode,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              onChanged: (_) => _notifyChange(),
+              onChanged: (_) => setState(() {}),
+              onEditingComplete: () => _notifyChange(),
+              onSubmitted: (_) => _notifyChange(),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13),
               decoration: const InputDecoration(
@@ -1837,8 +1880,11 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
             width: 75,
             child: TextField(
               controller: _qtyController,
+              focusNode: _qtyFocusNode,
               keyboardType: TextInputType.number,
-              onChanged: (_) => _notifyChange(),
+              onChanged: (_) => setState(() {}),
+              onEditingComplete: () => _notifyChange(),
+              onSubmitted: (_) => _notifyChange(),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
               decoration: const InputDecoration(
@@ -1881,8 +1927,17 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
             width: widget.rateWidth,
             child: TextField(
               controller: _priceController,
+              focusNode: _priceFocusNode,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              onChanged: (_) => _notifyChange(),
+              onChanged: (_) => setState(() {}),
+              onEditingComplete: () {
+                _notifyChange();
+                FocusScope.of(context).unfocus();
+              },
+              onSubmitted: (_) {
+                _notifyChange();
+                FocusScope.of(context).unfocus();
+              },
               textAlign: TextAlign.right,
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               decoration: const InputDecoration(
