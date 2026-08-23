@@ -635,9 +635,9 @@ class _SalesReportViewState extends State<SalesReportView> {
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 24.0),
                         child: Center(
-                        child: Text('No invoices found for the selected period.', style: TextStyle(color: Colors.grey)),
-                      ),
-                    )
+                          child: Text('No invoices found for the selected period.', style: TextStyle(color: Colors.grey)),
+                        ),
+                      )
                   else
                     ListView.separated(
                       shrinkWrap: true,
