@@ -1053,64 +1053,87 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                             ),
                           )
                         else
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Table Header Bar
-                                Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Row(
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final parentWidth = constraints.maxWidth;
+                              const double baseTotal = 856.0;
+                              final double actualWidth = parentWidth > baseTotal ? parentWidth : baseTotal;
+                              final double extra = actualWidth > baseTotal ? (actualWidth - baseTotal) : 0.0;
+
+                              final double nameW = 160 + (extra * 0.35);
+                              final double sizeW = 95 + (extra * 0.20);
+                              final double hsnW = 85 + (extra * 0.15);
+                              final double rateW = 90 + (extra * 0.15);
+                              final double amountW = 100 + (extra * 0.15);
+
+                              return SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: SizedBox(
+                                  width: actualWidth,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      SizedBox(width: 28, child: Text('#', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 160, child: Text('Item Name *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 85, child: Text('HSN *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 95, child: Text('Size', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 70, child: Text('PCS Count', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 75, child: Text('PCS Unit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 75, child: Text('Billed Qty *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 85, child: Text('Billing Unit *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 90, child: Text('Rate (₹) *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 100, child: Text('Taxable Value (₹)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                                      SizedBox(width: 6),
-                                      SizedBox(width: 40, child: Text('', style: TextStyle(color: Colors.white))),
+                                      // Table Header Bar
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const SizedBox(width: 28, child: Text('#', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                                            const SizedBox(width: 6),
+                                            SizedBox(width: nameW, child: const Text('Item Name *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            const SizedBox(width: 6),
+                                            SizedBox(width: hsnW, child: const Text('HSN *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            const SizedBox(width: 6),
+                                            SizedBox(width: sizeW, child: const Text('Size', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            const SizedBox(width: 6),
+                                            const SizedBox(width: 70, child: Text('PCS Count', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                                            const SizedBox(width: 6),
+                                            const SizedBox(width: 75, child: Text('PCS Unit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            const SizedBox(width: 6),
+                                            const SizedBox(width: 75, child: Text('Billed Qty *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                                            const SizedBox(width: 6),
+                                            const SizedBox(width: 85, child: Text('Billing Unit *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                            const SizedBox(width: 6),
+                                            SizedBox(width: rateW, child: const Text('Rate (₹) *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                                            const SizedBox(width: 6),
+                                            SizedBox(width: amountW, child: const Text('Taxable Value (₹)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                                            const SizedBox(width: 6),
+                                            const SizedBox(width: 36, child: Text('', style: TextStyle(color: Colors.white))),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+
+                                      // Table Rows
+                                      ...List.generate(invProvider.draftItems.length, (index) {
+                                        final item = invProvider.draftItems[index];
+                                        return _InlineInvoiceItemRow(
+                                          key: ValueKey('inline_item_row_$index'),
+                                          index: index,
+                                          item: item,
+                                          nameWidth: nameW,
+                                          sizeWidth: sizeW,
+                                          hsnWidth: hsnW,
+                                          rateWidth: rateW,
+                                          amountWidth: amountW,
+                                          availableUnits: _availableUnits,
+                                          onChanged: (updated) {
+                                            invProvider.updateDraftItem(index, updated);
+                                          },
+                                          onDelete: () {
+                                            invProvider.removeDraftItem(index);
+                                          },
+                                        );
+                                      }),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-
-                                // Table Rows
-                                ...List.generate(invProvider.draftItems.length, (index) {
-                                  final item = invProvider.draftItems[index];
-                                  return _InlineInvoiceItemRow(
-                                    key: ValueKey('inline_item_row_$index'),
-                                    index: index,
-                                    item: item,
-                                    availableUnits: _availableUnits,
-                                    onChanged: (updated) {
-                                      invProvider.updateDraftItem(index, updated);
-                                    },
-                                    onDelete: () {
-                                      invProvider.removeDraftItem(index);
-                                    },
-                                  );
-                                }),
-                              ],
-                            ),
+                              );
+                            },
                           ),
                       ],
                     ),
@@ -1348,6 +1371,11 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
 class _InlineInvoiceItemRow extends StatefulWidget {
   final int index;
   final InvoiceItem item;
+  final double nameWidth;
+  final double sizeWidth;
+  final double hsnWidth;
+  final double rateWidth;
+  final double amountWidth;
   final List<String> availableUnits;
   final Function(InvoiceItem updatedItem) onChanged;
   final VoidCallback onDelete;
@@ -1356,6 +1384,11 @@ class _InlineInvoiceItemRow extends StatefulWidget {
     super.key,
     required this.index,
     required this.item,
+    required this.nameWidth,
+    required this.sizeWidth,
+    required this.hsnWidth,
+    required this.rateWidth,
+    required this.amountWidth,
     required this.availableUnits,
     required this.onChanged,
     required this.onDelete,
@@ -1456,6 +1489,87 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
     widget.onChanged(updated);
   }
 
+  void _showAddNewProductQuickDialog(BuildContext context, Function(Product newProd) onAdded) {
+    final formKey = GlobalKey<FormState>();
+    final nameCtrl = TextEditingController();
+    final hsnCtrl = TextEditingController(text: '7304');
+    final priceCtrl = TextEditingController();
+    String unitVal = 'Pcs';
+
+    showDialog(
+      context: context,
+      builder: (dlgCtx) {
+        return AlertDialog(
+          title: const Text('Add New Product to Catalog'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameCtrl,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Product Name is required' : null,
+                  decoration: const InputDecoration(labelText: 'Product Name *', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: hsnCtrl,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'HSN Code is required' : null,
+                  decoration: const InputDecoration(labelText: 'HSN / SAC Code *', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: TextFormField(
+                        controller: priceCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Default Rate (₹)', border: OutlineInputBorder()),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 4,
+                      child: DropdownButtonFormField<String>(
+                        value: unitVal,
+                        decoration: const InputDecoration(labelText: 'Unit', border: OutlineInputBorder()),
+                        items: widget.availableUnits.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                        onChanged: (v) {
+                          if (v != null) unitVal = v;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dlgCtx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final newProd = Product(
+                    name: nameCtrl.text.trim(),
+                    hsnCode: hsnCtrl.text.trim(),
+                    unit: unitVal,
+                    price: double.tryParse(priceCtrl.text.trim()) ?? 0.0,
+                    gstRate: 18.0,
+                  );
+                  await Provider.of<ProductProvider>(context, listen: false).addProduct(newProd);
+                  onAdded(newProd);
+                  if (dlgCtx.mounted) Navigator.pop(dlgCtx);
+                }
+              },
+              child: const Text('Save & Select'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showProductSearchModal(BuildContext context) {
     final productProvider = Provider.of<ProductProvider>(context, listen: false);
     final allProducts = productProvider.products;
@@ -1469,11 +1583,38 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
-              title: const Row(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.search, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Text('Select Product from Catalog', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Row(
+                    children: [
+                      Icon(Icons.search, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text('Select Product', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      _showAddNewProductQuickDialog(context, (newProd) {
+                        setState(() {
+                          _nameController.text = newProd.name ?? '';
+                          if (newProd.hsnCode != null && newProd.hsnCode!.isNotEmpty) {
+                            _hsnController.text = newProd.hsnCode!;
+                          }
+                          if (newProd.unit != null && widget.availableUnits.contains(newProd.unit)) {
+                            _selectedBillingUnit = newProd.unit!;
+                          }
+                          if (newProd.price != null && newProd.price! > 0) {
+                            _priceController.text = newProd.price.toString();
+                          }
+                        });
+                        _notifyChange();
+                        Navigator.pop(ctx);
+                      });
+                    },
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('+ Add New Product'),
+                  ),
                 ],
               ),
               content: SizedBox(
@@ -1586,24 +1727,28 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
           ),
           const SizedBox(width: 6),
 
-          // 1. Item Name * (With Search Dropdown Suffix Icon)
+          // 1. Item Name * (Non-writable Tap-to-Select Dropdown Field)
           SizedBox(
-            width: 175,
-            child: TextField(
-              controller: _nameController,
-              onChanged: (_) => _notifyChange(),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              decoration: InputDecoration(
-                hintText: 'Item Name *',
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.blue, size: 18),
-                  tooltip: 'Select from Product Catalog',
-                  onPressed: () => _showProductSearchModal(context),
+            width: widget.nameWidth,
+            child: InkWell(
+              onTap: () => _showProductSearchModal(context),
+              borderRadius: BorderRadius.circular(4),
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.blue, size: 18),
                 ),
-                suffixIconConstraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                child: Text(
+                  _nameController.text.isNotEmpty ? _nameController.text : 'Select Item *',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _nameController.text.isNotEmpty ? Colors.black87 : Colors.grey.shade600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ),
@@ -1611,7 +1756,7 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
 
           // 2. HSN / SAC Code *
           SizedBox(
-            width: 85,
+            width: widget.hsnWidth,
             child: TextField(
               controller: _hsnController,
               onChanged: (_) => _notifyChange(),
@@ -1628,7 +1773,7 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
 
           // 3. Size (Optional)
           SizedBox(
-            width: 95,
+            width: widget.sizeWidth,
             child: TextField(
               controller: _sizeController,
               onChanged: (_) => _notifyChange(),
@@ -1733,7 +1878,7 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
 
           // 8. Rate / Price (₹) *
           SizedBox(
-            width: 90,
+            width: widget.rateWidth,
             child: TextField(
               controller: _priceController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1752,7 +1897,7 @@ class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
 
           // 9. Taxable Value (₹)
           SizedBox(
-            width: 100,
+            width: widget.amountWidth,
             child: Text(
               '₹${amount.toStringAsFixed(2)}',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blue),
