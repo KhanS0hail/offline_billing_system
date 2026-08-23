@@ -981,66 +981,147 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 4. LINE ITEMS SECTION
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Line Items', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-                    ElevatedButton.icon(
-                      onPressed: () => _showProductPickerDialog(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Item'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                invProvider.draftItems.isEmpty
-                    ? Container(
-                        padding: const EdgeInsets.all(32),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text('No line items added yet. Click "+ Add Item" above!'),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: invProvider.draftItems.length,
-                        itemBuilder: (context, index) {
-                          final item = invProvider.draftItems[index];
-                          final sizeText = (item.size != null && item.size!.isNotEmpty) ? " | Size: ${item.size}" : "";
-                          final pcsText = (item.pcsCount != null && item.pcsCount!.isNotEmpty) ? " | PCS: ${item.pcsCount}" : "";
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            child: ListTile(
-                              title: Text(
-                                '${index + 1}. ${item.productName}$sizeText$pcsText',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text(
-                                'Billed Qty: ${item.quantity} ${item.unit} x ₹${item.price.toStringAsFixed(2)} = ₹${item.amount.toStringAsFixed(2)}',
-                                style: const TextStyle(fontWeight: FontWeight.w500),
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, color: Colors.blue),
-                                    onPressed: () => _showEditItemDialog(context, index, item),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => invProvider.removeDraftItem(index),
-                                  ),
-                                ],
-                              ),
+                // 4. INLINE EDITABLE ITEM DETAILS TABLE
+                Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.inventory_2_rounded, color: Theme.of(context).colorScheme.primary),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Item Details',
+                                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                                ),
+                                const SizedBox(width: 8),
+                                Chip(
+                                  label: Text('${invProvider.draftItems.length} Items'),
+                                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                  labelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
+                            Row(
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () => _showProductPickerDialog(context),
+                                  icon: const Icon(Icons.search, size: 18),
+                                  label: const Text('Catalog Product'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    final newItem = InvoiceItem(
+                                      productName: '',
+                                      hsnCode: '7304',
+                                      quantity: 1,
+                                      unit: 'Pcs',
+                                      price: 0.0,
+                                    );
+                                    invProvider.addDraftItem(newItem);
+                                  },
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text('Add Custom Item Row'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        if (invProvider.draftItems.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(36),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(Icons.post_add_rounded, size: 44, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  'No line items added yet.',
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Click "+ Add Custom Item Row" to type directly or "+ Catalog Product" to search catalog.',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Table Header Bar
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      SizedBox(width: 28, child: Text('#', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                                      SizedBox(width: 6),
+                                      SizedBox(width: 170, child: Text('Product Name *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                      SizedBox(width: 6),
+                                      SizedBox(width: 120, child: Text('Description / Size', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                      SizedBox(width: 6),
+                                      SizedBox(width: 85, child: Text('HSN *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                      SizedBox(width: 6),
+                                      SizedBox(width: 75, child: Text('Quantity *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                                      SizedBox(width: 6),
+                                      SizedBox(width: 85, child: Text('Unit *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                                      SizedBox(width: 6),
+                                      SizedBox(width: 95, child: Text('Rate (₹) *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                                      SizedBox(width: 6),
+                                      SizedBox(width: 100, child: Text('Taxable Value (₹)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                                      SizedBox(width: 6),
+                                      SizedBox(width: 40, child: Text('', style: TextStyle(color: Colors.white))),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+
+                                // Table Rows
+                                ...List.generate(invProvider.draftItems.length, (index) {
+                                  final item = invProvider.draftItems[index];
+                                  return _InlineInvoiceItemRow(
+                                    key: ValueKey('item_${index}_${item.productName}_${item.quantity}_${item.price}'),
+                                    index: index,
+                                    item: item,
+                                    availableUnits: _availableUnits,
+                                    onChanged: (updated) {
+                                      invProvider.updateDraftItem(index, updated);
+                                    },
+                                    onDelete: () {
+                                      invProvider.removeDraftItem(index);
+                                    },
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
 
                 // 5. CALCULATIONS & PAYMENT STATUS CARD
@@ -1266,6 +1347,259 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
         Text(value, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
       ],
+    );
+  }
+}
+
+class _InlineInvoiceItemRow extends StatefulWidget {
+  final int index;
+  final InvoiceItem item;
+  final List<String> availableUnits;
+  final Function(InvoiceItem updatedItem) onChanged;
+  final VoidCallback onDelete;
+
+  const _InlineInvoiceItemRow({
+    super.key,
+    required this.index,
+    required this.item,
+    required this.availableUnits,
+    required this.onChanged,
+    required this.onDelete,
+  });
+
+  @override
+  State<_InlineInvoiceItemRow> createState() => _InlineInvoiceItemRowState();
+}
+
+class _InlineInvoiceItemRowState extends State<_InlineInvoiceItemRow> {
+  late TextEditingController _nameController;
+  late TextEditingController _sizeController;
+  late TextEditingController _hsnController;
+  late TextEditingController _qtyController;
+  late TextEditingController _priceController;
+  late String _selectedUnit;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.item.productName);
+
+    String descStr = widget.item.size ?? '';
+    if (widget.item.pcsCount != null && widget.item.pcsCount!.isNotEmpty) {
+      if (descStr.isNotEmpty) descStr += " | ";
+      descStr += widget.item.pcsCount!;
+    }
+    _sizeController = TextEditingController(text: descStr);
+    _hsnController = TextEditingController(text: widget.item.hsnCode ?? '');
+    _qtyController = TextEditingController(text: widget.item.quantity.toString());
+    _priceController = TextEditingController(text: widget.item.price == 0 ? '' : widget.item.price.toString());
+    _selectedUnit = widget.availableUnits.contains(widget.item.unit) ? widget.item.unit : widget.availableUnits.first;
+  }
+
+  @override
+  void didUpdateWidget(covariant _InlineInvoiceItemRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.productName != widget.item.productName && _nameController.text != widget.item.productName) {
+      _nameController.text = widget.item.productName;
+    }
+    if (oldWidget.item.hsnCode != widget.item.hsnCode && _hsnController.text != (widget.item.hsnCode ?? '')) {
+      _hsnController.text = widget.item.hsnCode ?? '';
+    }
+    if (oldWidget.item.price != widget.item.price && _priceController.text != (widget.item.price == 0 ? '' : widget.item.price.toString())) {
+      _priceController.text = widget.item.price == 0 ? '' : widget.item.price.toString();
+    }
+    if (oldWidget.item.quantity != widget.item.quantity && _qtyController.text != widget.item.quantity.toString()) {
+      _qtyController.text = widget.item.quantity.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _sizeController.dispose();
+    _hsnController.dispose();
+    _qtyController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  void _notifyChange() {
+    final qty = int.tryParse(_qtyController.text.trim()) ?? 1;
+    final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+    final amount = (qty > 0 ? qty : 1) * price;
+
+    final updated = widget.item.copyWith(
+      productName: _nameController.text.trim(),
+      size: _sizeController.text.trim().isEmpty ? null : _sizeController.text.trim(),
+      hsnCode: _hsnController.text.trim(),
+      quantity: qty > 0 ? qty : 1,
+      unit: _selectedUnit,
+      price: price,
+      amount: amount,
+    );
+
+    widget.onChanged(updated);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final qty = int.tryParse(_qtyController.text.trim()) ?? 1;
+    final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+    final amount = (qty > 0 ? qty : 1) * price;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      decoration: BoxDecoration(
+        color: widget.index % 2 == 0 ? Colors.grey.shade50 : Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 0.8)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Index #
+          SizedBox(
+            width: 28,
+            child: Text(
+              '${widget.index + 1}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // 1. Product Name
+          SizedBox(
+            width: 170,
+            child: TextField(
+              controller: _nameController,
+              onChanged: (_) => _notifyChange(),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                hintText: 'Product Name *',
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // 2. Description / Size
+          SizedBox(
+            width: 120,
+            child: TextField(
+              controller: _sizeController,
+              onChanged: (_) => _notifyChange(),
+              style: const TextStyle(fontSize: 13),
+              decoration: const InputDecoration(
+                hintText: 'Description / Size',
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // 3. HSN Code
+          SizedBox(
+            width: 85,
+            child: TextField(
+              controller: _hsnController,
+              onChanged: (_) => _notifyChange(),
+              style: const TextStyle(fontSize: 13),
+              decoration: const InputDecoration(
+                hintText: 'HSN *',
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // 4. Quantity
+          SizedBox(
+            width: 75,
+            child: TextField(
+              controller: _qtyController,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => _notifyChange(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                hintText: 'Qty *',
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // 5. Unit Dropdown
+          SizedBox(
+            width: 85,
+            child: DropdownButtonFormField<String>(
+              value: _selectedUnit,
+              isExpanded: true,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                border: OutlineInputBorder(),
+              ),
+              items: widget.availableUnits
+                  .map((u) => DropdownMenuItem(value: u, child: Text(u, style: const TextStyle(fontSize: 12))))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => _selectedUnit = val);
+                  _notifyChange();
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // 6. Rate / Price (₹)
+          SizedBox(
+            width: 95,
+            child: TextField(
+              controller: _priceController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => _notifyChange(),
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                hintText: 'Rate (₹) *',
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // 7. Amount (Taxable Value ₹)
+          SizedBox(
+            width: 100,
+            child: Text(
+              '₹${amount.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blue),
+              textAlign: TextAlign.right,
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // 8. Delete Action Button
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+            tooltip: 'Remove Item',
+            onPressed: widget.onDelete,
+          ),
+        ],
+      ),
     );
   }
 }
