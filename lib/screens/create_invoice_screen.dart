@@ -1097,7 +1097,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                                 ...List.generate(invProvider.draftItems.length, (index) {
                                   final item = invProvider.draftItems[index];
                                   return _InlineInvoiceItemRow(
-                                    key: ValueKey('item_${index}_${item.productName}_${item.quantity}_${item.price}'),
+                                    key: ValueKey('inline_item_row_$index'),
                                     index: index,
                                     item: item,
                                     availableUnits: _availableUnits,
