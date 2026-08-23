@@ -631,63 +631,62 @@ class _SalesReportViewState extends State<SalesReportView> {
                       ],
                     ),
                     const Divider(height: 20),
-                    if (filteredInvoices.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24.0),
-                        child: Center(
-                          child: Text('No invoices found for the selected period.', style: TextStyle(color: Colors.grey)),
-                        ),
-                      )
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: filteredInvoices.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (ctx, idx) {
-                        final inv = filteredInvoices[idx];
-                        final isPaid = inv.status == 'Paid';
-                        final isPartial = inv.status == 'Partially Paid';
-
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            backgroundColor: isPaid ? Colors.green.shade100 : (isPartial ? Colors.orange.shade100 : Colors.red.shade100),
-                            child: Icon(
-                              isPaid ? Icons.check_circle : (isPartial ? Icons.rule : Icons.pending),
-                              color: isPaid ? Colors.green.shade800 : (isPartial ? Colors.orange.shade800 : Colors.red.shade800),
-                              size: 18,
+                    filteredInvoices.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24.0),
+                            child: Center(
+                              child: Text('No invoices found for the selected period.', style: TextStyle(color: Colors.grey)),
                             ),
+                          )
+                        : ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: filteredInvoices.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            itemBuilder: (ctx, idx) {
+                              final inv = filteredInvoices[idx];
+                              final isPaid = inv.status == 'Paid';
+                              final isPartial = inv.status == 'Partially Paid';
+
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(
+                                  backgroundColor: isPaid ? Colors.green.shade100 : (isPartial ? Colors.orange.shade100 : Colors.red.shade100),
+                                  child: Icon(
+                                    isPaid ? Icons.check_circle : (isPartial ? Icons.rule : Icons.pending),
+                                    color: isPaid ? Colors.green.shade800 : (isPartial ? Colors.orange.shade800 : Colors.red.shade800),
+                                    size: 18,
+                                  ),
+                                ),
+                                title: Text(inv.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Text('${inv.customerName ?? "Cash"} • ${inv.date}'),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text('₹${inv.grandTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                        Text(inv.status, style: TextStyle(fontSize: 11, color: isPaid ? Colors.green : (isPartial ? Colors.orange : Colors.red))),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.picture_as_pdf, color: Colors.blue, size: 20),
+                                      tooltip: 'View Invoice PDF',
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (_) => PdfPreviewScreen(invoice: inv)),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
-                          title: Text(inv.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${inv.customerName ?? "Cash"} • ${inv.date}'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text('₹${inv.grandTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                  Text(inv.status, style: TextStyle(fontSize: 11, color: isPaid ? Colors.green : (isPartial ? Colors.orange : Colors.red))),
-                                ],
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.picture_as_pdf, color: Colors.blue, size: 20),
-                                tooltip: 'View Invoice PDF',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => PdfPreviewScreen(invoice: inv)),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
                 ],
               ),
             ),
