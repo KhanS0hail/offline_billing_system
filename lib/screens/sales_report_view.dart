@@ -608,7 +608,7 @@ class _SalesReportViewState extends State<SalesReportView> {
           ],
 
           // 6. INVOICES SCHEDULE LIST
-          if (_selectedSummaryType == 'Full Comprehensive' || _selectedSummaryType == 'Invoice-Wise Only') ...[
+          if (_selectedSummaryType == 'Full Comprehensive' || _selectedSummaryType == 'Invoice-Wise Only')
             Card(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
@@ -687,10 +687,10 @@ class _SalesReportViewState extends State<SalesReportView> {
                               );
                             },
                           ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ],
         ],
       ),
     );
