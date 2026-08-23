@@ -18,16 +18,28 @@ class PdfSaver {
           fileName: fileName,
           type: FileType.custom,
           allowedExtensions: ['pdf'],
-          bytes: pdfBytes,
         );
 
-        if (outputFile != null) {
+        if (outputFile != null && outputFile.isNotEmpty) {
           final file = File(outputFile);
           await file.writeAsBytes(pdfBytes);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('PDF saved successfully to: $outputFile')),
             );
+          }
+        } else {
+          // If save dialog canceled or unavailable, save directly to Downloads
+          final downloadsDir = await getDownloadsDirectory();
+          if (downloadsDir != null) {
+            final savePath = "${downloadsDir.path}/$fileName";
+            final file = File(savePath);
+            await file.writeAsBytes(pdfBytes);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('PDF saved to Downloads folder: $savePath')),
+              );
+            }
           }
         }
       } else if (Platform.isAndroid || Platform.isIOS) {

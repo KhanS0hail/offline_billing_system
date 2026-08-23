@@ -5,6 +5,7 @@ import '../providers/invoice_provider.dart';
 import '../providers/company_provider.dart';
 import '../models/invoice.dart';
 import '../utils/pdf_statement_builder.dart';
+import '../utils/pdf_saver.dart';
 import 'pdf_preview_screen.dart';
 
 enum SalesFilterMode { monthly, yearly, customRange }
@@ -18,6 +19,7 @@ class SalesReportView extends StatefulWidget {
 
 class _SalesReportViewState extends State<SalesReportView> {
   SalesFilterMode _filterMode = SalesFilterMode.monthly;
+  String _selectedSummaryType = 'Full Comprehensive';
 
   String _selectedMonth = 'August';
   int _selectedYear = 2026;
@@ -49,13 +51,11 @@ class _SalesReportViewState extends State<SalesReportView> {
     if (dateStr.trim().isEmpty) return null;
     final clean = dateStr.trim();
 
-    // 1. Try standard ISO parse (e.g. 2026-08-17)
     try {
       final isoDate = DateTime.tryParse(clean);
       if (isoDate != null) return isoDate;
     } catch (_) {}
 
-    // 2. Try split with '-' or '/' or ' '
     final delimiters = RegExp(r'[-/ ]');
     final parts = clean.split(delimiters).where((p) => p.isNotEmpty).toList();
     if (parts.length >= 3) {
@@ -69,16 +69,12 @@ class _SalesReportViewState extends State<SalesReportView> {
         'july', 'august', 'september', 'october', 'november', 'december'
       ];
 
-      // Case A: YYYY-MM-DD
       if (parts[0].length == 4 && int.tryParse(parts[0]) != null) {
         year = int.parse(parts[0]);
         month = int.tryParse(parts[1]);
         day = int.tryParse(parts[2]);
       } else {
-        // Case B: DD-MM-YYYY or DD-MMM-YYYY
         day = int.tryParse(parts[0]);
-
-        // Try parsing month as number
         month = int.tryParse(parts[1]);
         if (month == null) {
           final mLower = parts[1].toLowerCase();
@@ -90,7 +86,6 @@ class _SalesReportViewState extends State<SalesReportView> {
             if (fIdx != -1) month = fIdx + 1;
           }
         }
-
         year = int.tryParse(parts[2]);
       }
 
@@ -113,7 +108,6 @@ class _SalesReportViewState extends State<SalesReportView> {
       } else if (_filterMode == SalesFilterMode.yearly) {
         return invDate.year == _selectedYear;
       } else {
-        // Custom Date Range
         final start = DateTime(_startDate.year, _startDate.month, _startDate.day);
         final end = DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
         return invDate.isAfter(start.subtract(const Duration(seconds: 1))) &&
@@ -123,7 +117,7 @@ class _SalesReportViewState extends State<SalesReportView> {
       ..sort((a, b) {
         final d1 = _parseInvoiceDate(a.date) ?? DateTime(2000);
         final d2 = _parseInvoiceDate(b.date) ?? DateTime(2000);
-        return d2.compareTo(d1); // Newest first
+        return d2.compareTo(d1);
       });
   }
 
@@ -137,7 +131,7 @@ class _SalesReportViewState extends State<SalesReportView> {
     }
   }
 
-  Future<void> _exportPdf(
+  void _openSalesReportPdfPreview(
     BuildContext context, {
     required List<Invoice> filteredInvoices,
     required double totalSales,
@@ -149,28 +143,37 @@ class _SalesReportViewState extends State<SalesReportView> {
     required double totalOutstanding,
     required Map<String, Map<String, dynamic>> productSalesMap,
     required Map<String, Map<String, dynamic>> customerSalesMap,
-  }) async {
-    final company = Provider.of<CompanyProvider>(context, listen: false).company;
+  }) {
     final periodTitle = _getPeriodTitle();
+    final fileName = 'Sales_Report_${periodTitle.replaceAll(' ', '_')}.pdf';
 
-    final pdfBytes = await PdfStatementBuilder.buildSalesReport(
-      company: company,
-      periodTitle: periodTitle,
-      invoices: filteredInvoices,
-      totalSales: totalSales,
-      totalTaxable: totalTaxable,
-      totalCgst: totalCgst,
-      totalSgst: totalSgst,
-      totalIgst: totalIgst,
-      totalReceived: totalReceived,
-      totalOutstanding: totalOutstanding,
-      productSalesMap: productSalesMap,
-      customerSalesMap: customerSalesMap,
-    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfPreviewScreen.custom(
+          title: 'Sales Report ($periodTitle)',
+          pdfFileName: fileName,
+          buildPdfBytes: (ctx, format) async {
+            final company = Provider.of<CompanyProvider>(ctx, listen: false).company;
 
-    await Printing.layoutPdf(
-      onLayout: (_) => pdfBytes,
-      name: 'Sales_Report_${periodTitle.replaceAll(' ', '_')}.pdf',
+            return await PdfStatementBuilder.buildSalesReport(
+              company: company,
+              periodTitle: periodTitle,
+              invoices: filteredInvoices,
+              totalSales: totalSales,
+              totalTaxable: totalTaxable,
+              totalCgst: totalCgst,
+              totalSgst: totalSgst,
+              totalIgst: totalIgst,
+              totalReceived: totalReceived,
+              totalOutstanding: totalOutstanding,
+              productSalesMap: productSalesMap,
+              customerSalesMap: customerSalesMap,
+              summaryType: _selectedSummaryType,
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -280,6 +283,26 @@ class _SalesReportViewState extends State<SalesReportView> {
                       if (mode != null) {
                         setState(() => _filterMode = mode);
                       }
+                    },
+                  ),
+                  const Divider(height: 24),
+
+                  // Summary Report Type Dropdown
+                  DropdownButtonFormField<String>(
+                    value: _selectedSummaryType,
+                    decoration: const InputDecoration(
+                      labelText: 'Summary Report Type',
+                      prefixIcon: Icon(Icons.summarize_rounded, color: Colors.indigo),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'Full Comprehensive', child: Text('Full Comprehensive Report (All Summaries)')),
+                      DropdownMenuItem(value: 'Invoice-Wise Only', child: Text('Invoice-Wise Sales Schedule Only')),
+                      DropdownMenuItem(value: 'Product-Wise Only', child: Text('Product-Wise Sales Summary Only')),
+                      DropdownMenuItem(value: 'Customer-Wise Only', child: Text('Customer-Wise Sales Summary Only')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedSummaryType = val);
                     },
                   ),
                   const Divider(height: 24),
@@ -445,13 +468,13 @@ class _SalesReportViewState extends State<SalesReportView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Sales Performance for ${_getPeriodTitle()}',
+                'Sales Performance (${_selectedSummaryType})',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               ElevatedButton.icon(
                 onPressed: filteredInvoices.isEmpty
                     ? null
-                    : () => _exportPdf(
+                    : () => _openSalesReportPdfPreview(
                           context,
                           filteredInvoices: filteredInvoices,
                           totalSales: totalSales,
@@ -465,14 +488,14 @@ class _SalesReportViewState extends State<SalesReportView> {
                           customerSalesMap: customerSalesMap,
                         ),
                 icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
-                label: const Text('Export Sales PDF'),
+                label: const Text('PDF Preview & Print'),
               ),
             ],
           ),
           const SizedBox(height: 12),
 
           // 4. PRODUCT-WISE SALES BREAKDOWN
-          if (productSalesMap.isNotEmpty) ...[
+          if ((_selectedSummaryType == 'Full Comprehensive' || _selectedSummaryType == 'Product-Wise Only') && productSalesMap.isNotEmpty) ...[
             Card(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
@@ -530,7 +553,7 @@ class _SalesReportViewState extends State<SalesReportView> {
           ],
 
           // 5. CUSTOMER-WISE SALES BREAKDOWN
-          if (customerSalesMap.isNotEmpty) ...[
+          if ((_selectedSummaryType == 'Full Comprehensive' || _selectedSummaryType == 'Customer-Wise Only') && customerSalesMap.isNotEmpty) ...[
             Card(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
@@ -585,32 +608,33 @@ class _SalesReportViewState extends State<SalesReportView> {
           ],
 
           // 6. INVOICES SCHEDULE LIST
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.receipt_long_rounded, color: Colors.blue, size: 20),
-                          const SizedBox(width: 8),
-                          Text('Invoices in this Period (${filteredInvoices.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        ],
-                      ),
-                      if (filteredInvoices.isNotEmpty)
-                        Text('Total: ₹${totalSales.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-                    ],
-                  ),
-                  const Divider(height: 20),
-                  if (filteredInvoices.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24.0),
-                      child: Center(
+          if (_selectedSummaryType == 'Full Comprehensive' || _selectedSummaryType == 'Invoice-Wise Only') ...[
+            Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.receipt_long_rounded, color: Colors.blue, size: 20),
+                            const SizedBox(width: 8),
+                            Text('Invoices in this Period (${filteredInvoices.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          ],
+                        ),
+                        if (filteredInvoices.isNotEmpty)
+                          Text('Total: ₹${totalSales.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                      ],
+                    ),
+                    const Divider(height: 20),
+                    if (filteredInvoices.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24.0),
+                        child: Center(
                         child: Text('No invoices found for the selected period.', style: TextStyle(color: Colors.grey)),
                       ),
                     )
@@ -667,7 +691,7 @@ class _SalesReportViewState extends State<SalesReportView> {
                 ],
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

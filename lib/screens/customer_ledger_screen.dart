@@ -9,6 +9,7 @@ import '../models/invoice.dart';
 import '../models/customer_payment.dart';
 import '../utils/pdf_statement_builder.dart';
 import '../utils/pdf_saver.dart';
+import 'pdf_preview_screen.dart';
 
 class CustomerLedgerScreen extends StatefulWidget {
   const CustomerLedgerScreen({super.key});
@@ -81,7 +82,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     }
   }
 
-  void _exportPdfStatement() async {
+  void _openPdfPreview(BuildContext context) async {
     if (_selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a customer first!')),
@@ -89,77 +90,41 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       return;
     }
 
-    final company = Provider.of<CompanyProvider>(context, listen: false).company;
-    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
-    final invoiceProvider = Provider.of<InvoiceProvider>(context, listen: false);
-
-    final invoices = invoiceProvider.invoices
-        .where((inv) => inv.customerId == _selectedCustomer!.id || inv.customerName == _selectedCustomer!.name)
-        .toList();
-
-    final payments = await customerProvider.getPaymentsForCustomer(_selectedCustomer!.id!);
-
-    final startStr = "${_startDate.day}-${_startDate.month}-${_startDate.year}";
-    final endStr = "${_endDate.day}-${_endDate.month}-${_endDate.year}";
     final monthYearStr = "${_monthName(_startDate.month)}_${_startDate.year}";
-
-    final pdfBytes = await PdfStatementBuilder.buildCustomerStatement(
-      company: company,
-      customer: _selectedCustomer!,
-      customerInvoices: invoices,
-      customerPayments: payments,
-      startDateStr: startStr,
-      endDateStr: endStr,
-    );
-
     final fileName = PdfStatementBuilder.getStatementFileName(_selectedCustomer!, monthYearStr);
 
-    await Printing.layoutPdf(
-      onLayout: (_) async => pdfBytes,
-      name: fileName,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfPreviewScreen.custom(
+          title: 'Statement: ${_selectedCustomer!.name}',
+          pdfFileName: fileName,
+          buildPdfBytes: (ctx, format) async {
+            final company = Provider.of<CompanyProvider>(ctx, listen: false).company;
+            final customerProvider = Provider.of<CustomerProvider>(ctx, listen: false);
+            final invoiceProvider = Provider.of<InvoiceProvider>(ctx, listen: false);
+
+            final invoices = invoiceProvider.invoices
+                .where((inv) => inv.customerId == _selectedCustomer!.id || inv.customerName == _selectedCustomer!.name)
+                .toList();
+
+            final payments = await customerProvider.getPaymentsForCustomer(_selectedCustomer!.id!);
+
+            final startStr = "${_startDate.day}-${_startDate.month}-${_startDate.year}";
+            final endStr = "${_endDate.day}-${_endDate.month}-${_endDate.year}";
+
+            return await PdfStatementBuilder.buildCustomerStatement(
+              company: company,
+              customer: _selectedCustomer!,
+              customerInvoices: invoices,
+              customerPayments: payments,
+              startDateStr: startStr,
+              endDateStr: endStr,
+            );
+          },
+        ),
+      ),
     );
-  }
-
-  void _downloadPdfStatement() async {
-    if (_selectedCustomer == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a customer first!')),
-      );
-      return;
-    }
-
-    final company = Provider.of<CompanyProvider>(context, listen: false).company;
-    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
-    final invoiceProvider = Provider.of<InvoiceProvider>(context, listen: false);
-
-    final invoices = invoiceProvider.invoices
-        .where((inv) => inv.customerId == _selectedCustomer!.id || inv.customerName == _selectedCustomer!.name)
-        .toList();
-
-    final payments = await customerProvider.getPaymentsForCustomer(_selectedCustomer!.id!);
-
-    final startStr = "${_startDate.day}-${_startDate.month}-${_startDate.year}";
-    final endStr = "${_endDate.day}-${_endDate.month}-${_endDate.year}";
-    final monthYearStr = "${_monthName(_startDate.month)}_${_startDate.year}";
-
-    final pdfBytes = await PdfStatementBuilder.buildCustomerStatement(
-      company: company,
-      customer: _selectedCustomer!,
-      customerInvoices: invoices,
-      customerPayments: payments,
-      startDateStr: startStr,
-      endDateStr: endStr,
-    );
-
-    final fileName = PdfStatementBuilder.getStatementFileName(_selectedCustomer!, monthYearStr);
-
-    if (mounted) {
-      await PdfSaver.savePdf(
-        context: context,
-        pdfBytes: pdfBytes,
-        fileName: fileName,
-      );
-    }
   }
 
   void _showRecordPaymentDialog(BuildContext context) async {
@@ -333,6 +298,75 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     );
   }
 
+  void _showCustomerSearchPicker(BuildContext context) {
+    String search = '';
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setPickerState) {
+            final customerProvider = Provider.of<CustomerProvider>(context);
+            final allCusts = customerProvider.customers;
+            final filtered = search.trim().isEmpty
+                ? allCusts
+                : allCusts.where((c) {
+                    final q = search.toLowerCase();
+                    final name = (c.name ?? '').toLowerCase();
+                    final phone = (c.phone ?? '').toLowerCase();
+                    final gstin = (c.gstNumber ?? '').toLowerCase();
+                    return name.contains(q) || phone.contains(q) || gstin.contains(q);
+                  }).toList();
+
+            return AlertDialog(
+              title: const Text('Search & Select Customer'),
+              content: SizedBox(
+                width: 450,
+                height: 400,
+                child: Column(
+                  children: [
+                    TextField(
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Search by Name, Phone, or GSTIN...',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) => setPickerState(() => search = val),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? const Center(child: Text('No matching customers found'))
+                          : ListView.separated(
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (ctx, i) {
+                                final cust = filtered[i];
+                                return ListTile(
+                                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                                  title: Text(cust.name ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: Text('${cust.phone ?? "No phone"}${cust.gstNumber != null && cust.gstNumber!.isNotEmpty ? " • GST: ${cust.gstNumber}" : ""}'),
+                                  onTap: () {
+                                    setState(() => _selectedCustomer = cust);
+                                    Navigator.pop(ctx);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final customerProvider = Provider.of<CustomerProvider>(context);
@@ -344,14 +378,9 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         title: const Text('Customer Statement & Ledger'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.download_rounded),
-            tooltip: 'Download PDF',
-            onPressed: _downloadPdfStatement,
-          ),
-          IconButton(
             icon: const Icon(Icons.picture_as_pdf_rounded),
-            tooltip: 'Print / Export PDF',
-            onPressed: _exportPdfStatement,
+            tooltip: 'Preview / Export Statement PDF',
+            onPressed: () => _openPdfPreview(context),
           ),
         ],
       ),
@@ -421,27 +450,30 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. CUSTOMER SELECTOR & DATE FILTER CARD
+                // 1. SEARCHABLE CUSTOMER SELECTOR & DATE FILTER CARD
                 Card(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: Padding(
                     padding: const EdgeInsets.all(14.0),
                     child: Column(
                       children: [
-                        DropdownButtonFormField<Customer>(
-                          value: _selectedCustomer,
-                          decoration: const InputDecoration(
-                            labelText: 'Select Customer',
-                            prefixIcon: Icon(Icons.person_pin_rounded),
-                            border: OutlineInputBorder(),
+                        InkWell(
+                          onTap: () => _showCustomerSearchPicker(context),
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Select Customer / Company *',
+                              prefixIcon: Icon(Icons.person_search_rounded, color: Colors.blue),
+                              suffixIcon: Icon(Icons.arrow_drop_down),
+                              border: OutlineInputBorder(),
+                            ),
+                            child: Text(
+                              _selectedCustomer?.name ?? 'Tap to Search & Select Customer...',
+                              style: TextStyle(
+                                fontWeight: _selectedCustomer != null ? FontWeight.bold : FontWeight.normal,
+                                color: _selectedCustomer != null ? Colors.black87 : Colors.grey.shade600,
+                              ),
+                            ),
                           ),
-                          items: customers
-                              .map((c) => DropdownMenuItem(
-                                    value: c,
-                                    child: Text(c.name ?? 'Unnamed Customer'),
-                                  ))
-                              .toList(),
-                          onChanged: (val) => setState(() => _selectedCustomer = val),
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -523,20 +555,10 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                 'Statement Ledger for ${_selectedCustomer!.name}',
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                               ),
-                              Row(
-                                children: [
-                                  OutlinedButton.icon(
-                                    onPressed: _downloadPdfStatement,
-                                    icon: const Icon(Icons.download_rounded),
-                                    label: const Text('Download PDF'),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  ElevatedButton.icon(
-                                    onPressed: _exportPdfStatement,
-                                    icon: const Icon(Icons.print_rounded),
-                                    label: const Text('Print PDF'),
-                                  ),
-                                ],
+                              ElevatedButton.icon(
+                                onPressed: () => _openPdfPreview(context),
+                                icon: const Icon(Icons.picture_as_pdf_rounded),
+                                label: const Text('PDF Preview & Print'),
                               ),
                             ],
                           ),
