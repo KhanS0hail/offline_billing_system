@@ -431,7 +431,7 @@ class _SalesReportViewState extends State<SalesReportView> {
               Expanded(
                 child: _buildMetricTile(
                   'Total Invoices',
-                  '${filteredInvoices.length}  ($paidCount Paid)',
+                  '${filteredInvoices.length}',
                   Colors.indigo.shade700,
                   Icons.description_rounded,
                 ),

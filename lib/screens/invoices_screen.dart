@@ -90,118 +90,6 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     return months[m - 1];
   }
 
-  void _showUpdatePaymentDialog(BuildContext context, Invoice invoice) {
-    String selectedStatus = invoice.status;
-    final receivedController = TextEditingController(text: invoice.receivedAmount.toString());
-    DateTime selectedPaymentDate = _parseInvoiceDate(invoice.paymentDate ?? invoice.date) ?? DateTime.now();
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final formattedDateStr = "${selectedPaymentDate.day.toString().padLeft(2, '0')}-${_monthName(selectedPaymentDate.month)}-${selectedPaymentDate.year}";
-
-            return AlertDialog(
-              title: Text('Update Payment: ${invoice.invoiceNumber}'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Total Bill: ₹${invoice.grandTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    const Text('Payment Status:'),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      value: selectedStatus,
-                      decoration: const InputDecoration(border: OutlineInputBorder()),
-                      items: ['Unpaid', 'Partially Paid', 'Paid']
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() {
-                            selectedStatus = val;
-                            if (val == 'Paid') {
-                              receivedController.text = invoice.grandTotal.toString();
-                            } else if (val == 'Unpaid') {
-                              receivedController.text = '0.0';
-                            }
-                          });
-                        }
-                      },
-                    ),
-                    if (selectedStatus == 'Partially Paid') ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: receivedController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(labelText: 'Received Amount (₹)', border: OutlineInputBorder()),
-                      ),
-                    ],
-                    if (selectedStatus == 'Paid' || selectedStatus == 'Partially Paid') ...[
-                      const SizedBox(height: 12),
-                      InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedPaymentDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2035),
-                          );
-                          if (picked != null) {
-                            setDialogState(() => selectedPaymentDate = picked);
-                          }
-                        },
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Payment Received Date',
-                            prefixIcon: Icon(Icons.calendar_today),
-                            border: OutlineInputBorder(),
-                          ),
-                          child: Text(formattedDateStr),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                ElevatedButton(
-                  onPressed: () async {
-                    double rec = double.tryParse(receivedController.text.trim()) ?? 0.0;
-                    if (selectedStatus == 'Paid') rec = invoice.grandTotal;
-                    if (selectedStatus == 'Unpaid') rec = 0.0;
-                    double bal = invoice.grandTotal - rec;
-                    if (bal < 0) bal = 0.0;
-
-                    final paymentDateToSave = (selectedStatus == 'Paid' || selectedStatus == 'Partially Paid')
-                        ? formattedDateStr
-                        : null;
-
-                    if (invoice.id != null) {
-                      await Provider.of<InvoiceProvider>(context, listen: false).updateInvoicePayment(
-                        invoice.id!,
-                        selectedStatus,
-                        received: rec,
-                        balance: bal,
-                        paymentDate: paymentDateToSave,
-                      );
-                    }
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  },
-                  child: const Text('Update Payment'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   void _showFilterBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -711,11 +599,6 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                                                   MaterialPageRoute(builder: (_) => const CreateInvoiceScreen()),
                                                 );
                                               },
-                                            ),
-                                            IconButton(
-                                              icon: Icon(Icons.edit_note, color: statusColor),
-                                              tooltip: 'Update Payment Status',
-                                              onPressed: () => _showUpdatePaymentDialog(context, inv),
                                             ),
                                             IconButton(
                                               icon: const Icon(Icons.delete, color: Colors.red),

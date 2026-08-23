@@ -8,6 +8,7 @@ import '../models/customer.dart';
 import '../models/invoice.dart';
 import '../models/customer_payment.dart';
 import '../utils/pdf_statement_builder.dart';
+import '../utils/pdf_saver.dart';
 
 class CustomerLedgerScreen extends StatefulWidget {
   const CustomerLedgerScreen({super.key});
@@ -117,6 +118,48 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       onLayout: (_) async => pdfBytes,
       name: fileName,
     );
+  }
+
+  void _downloadPdfStatement() async {
+    if (_selectedCustomer == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a customer first!')),
+      );
+      return;
+    }
+
+    final company = Provider.of<CompanyProvider>(context, listen: false).company;
+    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+    final invoiceProvider = Provider.of<InvoiceProvider>(context, listen: false);
+
+    final invoices = invoiceProvider.invoices
+        .where((inv) => inv.customerId == _selectedCustomer!.id || inv.customerName == _selectedCustomer!.name)
+        .toList();
+
+    final payments = await customerProvider.getPaymentsForCustomer(_selectedCustomer!.id!);
+
+    final startStr = "${_startDate.day}-${_startDate.month}-${_startDate.year}";
+    final endStr = "${_endDate.day}-${_endDate.month}-${_endDate.year}";
+    final monthYearStr = "${_monthName(_startDate.month)}_${_startDate.year}";
+
+    final pdfBytes = await PdfStatementBuilder.buildCustomerStatement(
+      company: company,
+      customer: _selectedCustomer!,
+      customerInvoices: invoices,
+      customerPayments: payments,
+      startDateStr: startStr,
+      endDateStr: endStr,
+    );
+
+    final fileName = PdfStatementBuilder.getStatementFileName(_selectedCustomer!, monthYearStr);
+
+    if (mounted) {
+      await PdfSaver.savePdf(
+        context: context,
+        pdfBytes: pdfBytes,
+        fileName: fileName,
+      );
+    }
   }
 
   void _showRecordPaymentDialog(BuildContext context) async {
@@ -301,8 +344,13 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         title: const Text('Customer Statement & Ledger'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Download PDF',
+            onPressed: _downloadPdfStatement,
+          ),
+          IconButton(
             icon: const Icon(Icons.picture_as_pdf_rounded),
-            tooltip: 'Export Statement PDF',
+            tooltip: 'Print / Export PDF',
             onPressed: _exportPdfStatement,
           ),
         ],
@@ -475,10 +523,20 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                 'Statement Ledger for ${_selectedCustomer!.name}',
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                               ),
-                              ElevatedButton.icon(
-                                onPressed: _exportPdfStatement,
-                                icon: const Icon(Icons.picture_as_pdf),
-                                label: const Text('Export PDF'),
+                              Row(
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: _downloadPdfStatement,
+                                    icon: const Icon(Icons.download_rounded),
+                                    label: const Text('Download PDF'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton.icon(
+                                    onPressed: _exportPdfStatement,
+                                    icon: const Icon(Icons.print_rounded),
+                                    label: const Text('Print PDF'),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

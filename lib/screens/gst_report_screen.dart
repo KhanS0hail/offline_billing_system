@@ -6,6 +6,8 @@ import '../providers/company_provider.dart';
 import '../models/invoice.dart';
 import '../utils/pdf_statement_builder.dart';
 
+import '../utils/pdf_saver.dart';
+
 class GstReportScreen extends StatefulWidget {
   const GstReportScreen({super.key});
 
@@ -26,7 +28,6 @@ class _GstReportScreenState extends State<GstReportScreen> {
     final company = Provider.of<CompanyProvider>(context, listen: false).company;
     final allInvoices = Provider.of<InvoiceProvider>(context, listen: false).invoices;
 
-    // Filter invoices by month and year
     final monthInvoices = allInvoices.where((inv) {
       try {
         final parts = inv.date.split('-');
@@ -70,6 +71,59 @@ class _GstReportScreenState extends State<GstReportScreen> {
       onLayout: (_) async => pdfBytes,
       name: 'GST_Report_${_months[_selectedMonth - 1]}_$_selectedYear.pdf',
     );
+  }
+
+  void _downloadGstPdf() async {
+    final company = Provider.of<CompanyProvider>(context, listen: false).company;
+    final allInvoices = Provider.of<InvoiceProvider>(context, listen: false).invoices;
+
+    final monthInvoices = allInvoices.where((inv) {
+      try {
+        final parts = inv.date.split('-');
+        if (parts.length >= 3) {
+          int y = int.parse(parts[2]);
+          int m = _getMonthIndex(parts[1]);
+          return y == _selectedYear && m == _selectedMonth;
+        }
+      } catch (_) {}
+      return true;
+    }).toList();
+
+    double totalSales = 0.0;
+    double totalTaxable = 0.0;
+    double totalCgst = 0.0;
+    double totalSgst = 0.0;
+    double totalIgst = 0.0;
+
+    for (var inv in monthInvoices) {
+      totalSales += inv.grandTotal;
+      totalTaxable += inv.taxableBase;
+      totalCgst += inv.cgstTotal;
+      totalSgst += inv.sgstTotal;
+      totalIgst += inv.igstTotal;
+    }
+
+    final monthStr = "${_months[_selectedMonth - 1]} $_selectedYear";
+    final fileName = 'GST_Report_${_months[_selectedMonth - 1]}_$_selectedYear.pdf';
+
+    final pdfBytes = await PdfStatementBuilder.buildGstReport(
+      company: company,
+      monthYearStr: monthStr,
+      monthInvoices: monthInvoices,
+      totalSales: totalSales,
+      totalTaxable: totalTaxable,
+      totalCgst: totalCgst,
+      totalSgst: totalSgst,
+      totalIgst: totalIgst,
+    );
+
+    if (mounted) {
+      await PdfSaver.savePdf(
+        context: context,
+        pdfBytes: pdfBytes,
+        fileName: fileName,
+      );
+    }
   }
 
   int _getMonthIndex(String mon) {
@@ -128,8 +182,13 @@ class _GstReportScreenState extends State<GstReportScreen> {
         title: const Text('Monthly GST Tax Reports'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Download GST Report PDF',
+            onPressed: _downloadGstPdf,
+          ),
+          IconButton(
             icon: const Icon(Icons.picture_as_pdf_rounded),
-            tooltip: 'Export GST Report PDF',
+            tooltip: 'Print / Export GST Report PDF',
             onPressed: _exportGstPdf,
           ),
         ],
@@ -260,10 +319,20 @@ class _GstReportScreenState extends State<GstReportScreen> {
                           'GSTR-1 Sales Schedule (${_months[_selectedMonth - 1]} $_selectedYear)',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                        ElevatedButton.icon(
-                          onPressed: _exportGstPdf,
-                          icon: const Icon(Icons.picture_as_pdf),
-                          label: const Text('Export PDF'),
+                        Row(
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _downloadGstPdf,
+                              icon: const Icon(Icons.download_rounded),
+                              label: const Text('Download PDF'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              onPressed: _exportGstPdf,
+                              icon: const Icon(Icons.print_rounded),
+                              label: const Text('Print PDF'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
