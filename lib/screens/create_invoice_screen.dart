@@ -1246,107 +1246,58 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                           'Amount in Words: $amountInWords',
                           style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Theme.of(context).colorScheme.primary),
                         ),
-                        const Divider(height: 24),
-
-                        // PAYMENT STATUS SELECTOR (Unpaid, Paid, Partially Paid)
-                        Text('Payment Status:', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-                        const SizedBox(height: 8),
-                        SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment(value: 'Unpaid', label: Text('Unpaid'), icon: Icon(Icons.pending, color: Colors.red)),
-                            ButtonSegment(value: 'Partially Paid', label: Text('Partially Paid'), icon: Icon(Icons.rule, color: Colors.orange)),
-                            ButtonSegment(value: 'Paid', label: Text('Paid'), icon: Icon(Icons.check_circle, color: Colors.green)),
-                          ],
-                          selected: {invProvider.paymentStatus},
-                          onSelectionChanged: (s) => invProvider.setPaymentStatus(s.first),
-                        ),
-                        if (invProvider.paymentStatus == 'Partially Paid') ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const Expanded(child: Text('Received Amount (₹):', style: TextStyle(fontWeight: FontWeight.bold))),
-                              SizedBox(
-                                width: 140,
-                                child: TextField(
-                                  controller: _receivedController,
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), prefixText: '₹'),
-                                  onChanged: (v) => invProvider.setReceivedAmount(double.tryParse(v) ?? 0.0),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Remaining Balance Due:'),
-                              Text(
-                                '₹${(totals.grandTotal - invProvider.receivedAmount).toStringAsFixed(2)}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-                              ),
-                            ],
-                          ),
-                        ],
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // 6. SAVE BUTTON
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      if (invProvider.selectedCustomer == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please select a customer for this invoice.'), backgroundColor: Colors.red),
-                        );
-                        return;
-                      }
-                      if (_challanController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Challan number is required.'), backgroundColor: Colors.red),
-                        );
-                        return;
-                      }
-                      if (invProvider.draftItems.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please add at least 1 line item.'), backgroundColor: Colors.red),
-                        );
-                        return;
-                      }
-                      if (invProvider.paymentStatus == 'Partially Paid' &&
-                          (invProvider.receivedAmount <= 0 || invProvider.receivedAmount >= totals.grandTotal)) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter a valid partial received amount (greater than 0 and less than Grand Total).'), backgroundColor: Colors.red),
-                        );
-                        return;
-                      }
-
-                      int savedId = await invProvider.saveDraftInvoice(company);
-                      final savedInvoice = await DatabaseHelper.instance.getInvoiceById(savedId);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
-                        );
-                        if (savedInvoice != null) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PdfPreviewScreen(invoice: savedInvoice),
-                            ),
-                          );
-                        } else {
-                          Navigator.pop(context);
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.check_circle),
-                    label: const Text('Save & Preview PDF Invoice', style: TextStyle(fontSize: 16)),
-                  ),
+                // 6. ACTION BUTTONS: SAVE & SAVE & PREVIEW PDF
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 50,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final savedInvoice = await _saveInvoiceHelper(context, invProvider, company);
+                            if (savedInvoice != null && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
+                              );
+                              Navigator.pop(context);
+                            }
+                          },
+                          icon: const Icon(Icons.save_rounded),
+                          label: const Text('Save', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final savedInvoice = await _saveInvoiceHelper(context, invProvider, company);
+                            if (savedInvoice != null && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
+                              );
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PdfPreviewScreen(invoice: savedInvoice),
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.picture_as_pdf_rounded),
+                          label: const Text('Save & Preview PDF', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 40),
               ],
@@ -1355,6 +1306,30 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         },
       ),
     );
+  }
+
+  Future<Invoice?> _saveInvoiceHelper(BuildContext context, InvoiceProvider invProvider, Company? company) async {
+    if (invProvider.selectedCustomer == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a customer for this invoice.'), backgroundColor: Colors.red),
+      );
+      return null;
+    }
+    if (_challanController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Challan number is required.'), backgroundColor: Colors.red),
+      );
+      return null;
+    }
+    if (invProvider.draftItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add at least 1 line item.'), backgroundColor: Colors.red),
+      );
+      return null;
+    }
+
+    int savedId = await invProvider.saveDraftInvoice(company);
+    return await DatabaseHelper.instance.getInvoiceById(savedId);
   }
 
   Widget _buildSummaryRow(String label, String value, {bool isBold = false}) {

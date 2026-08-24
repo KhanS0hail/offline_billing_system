@@ -20,6 +20,7 @@ class SalesReportView extends StatefulWidget {
 class _SalesReportViewState extends State<SalesReportView> {
   SalesFilterMode _filterMode = SalesFilterMode.monthly;
   String _selectedSummaryType = 'Full Comprehensive';
+  bool _includeFinancialSummary = true;
 
   String _selectedMonth = 'August';
   int _selectedYear = 2026;
@@ -170,6 +171,7 @@ class _SalesReportViewState extends State<SalesReportView> {
               productSalesMap: productSalesMap,
               customerSalesMap: customerSalesMap,
               summaryType: _selectedSummaryType,
+              includeFinancialSummary: _includeFinancialSummary,
             );
           },
         ),
@@ -304,6 +306,15 @@ class _SalesReportViewState extends State<SalesReportView> {
                     onChanged: (val) {
                       if (val != null) setState(() => _selectedSummaryType = val);
                     },
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Include Revenue & Financial Summary in PDF', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    subtitle: const Text('Toggles inclusion of top Revenue Summary table in generated PDF report'),
+                    value: _includeFinancialSummary,
+                    onChanged: (val) => setState(() => _includeFinancialSummary = val),
                   ),
                   const Divider(height: 24),
 

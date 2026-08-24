@@ -8,8 +8,12 @@ class CustomerProvider extends ChangeNotifier {
   bool _isLoading = false;
   String _searchQuery = '';
 
-  List<Customer> get customers {
-    if (_searchQuery.isEmpty) return _customers;
+  /// Returns full customer list from database (isolated from Customer Page search query)
+  List<Customer> get customers => _customers;
+
+  /// Returns filtered customers for Customer Page search view
+  List<Customer> get filteredCustomers {
+    if (_searchQuery.trim().isEmpty) return _customers;
     return _customers.where((customer) {
       final name = customer.name?.toLowerCase() ?? '';
       final phone = customer.phone?.toLowerCase() ?? '';
@@ -29,6 +33,7 @@ class CustomerProvider extends ChangeNotifier {
   Future<void> loadCustomers() async {
     _isLoading = true;
     notifyListeners();
+    _searchQuery = ''; // Reset search on fresh load/navigation
     _customers = await DatabaseHelper.instance.getCustomers();
     _isLoading = false;
     notifyListeners();

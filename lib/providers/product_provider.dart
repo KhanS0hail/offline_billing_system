@@ -7,8 +7,12 @@ class ProductProvider extends ChangeNotifier {
   bool _isLoading = false;
   String _searchQuery = '';
 
-  List<Product> get products {
-    if (_searchQuery.isEmpty) return _products;
+  /// Returns full product list from database (isolated from Product Page search query)
+  List<Product> get products => _products;
+
+  /// Returns filtered products for Product Page search view
+  List<Product> get filteredProducts {
+    if (_searchQuery.trim().isEmpty) return _products;
     return _products.where((product) {
       final name = product.name?.toLowerCase() ?? '';
       final hsn = product.hsnCode?.toLowerCase() ?? '';
@@ -27,6 +31,7 @@ class ProductProvider extends ChangeNotifier {
   Future<void> loadProducts() async {
     _isLoading = true;
     notifyListeners();
+    _searchQuery = ''; // Reset search on fresh load/navigation
     _products = await DatabaseHelper.instance.getProducts();
     _isLoading = false;
     notifyListeners();

@@ -76,13 +76,7 @@ class ProductsScreen extends StatelessWidget {
                             child: TextFormField(
                               controller: priceController,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              validator: (v) {
-                                if (v == null || v.trim().isEmpty) return 'Price is required';
-                                final numVal = double.tryParse(v.trim());
-                                if (numVal == null || numVal < 0) return 'Enter valid price';
-                                return null;
-                              },
-                              decoration: const InputDecoration(labelText: 'Selling Price (₹) *', prefixIcon: Icon(Icons.currency_rupee)),
+                              decoration: const InputDecoration(labelText: 'Selling Price (₹) (Optional)', prefixIcon: Icon(Icons.currency_rupee)),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -117,13 +111,14 @@ class ProductsScreen extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () async {
                     if (formKey.currentState!.validate()) {
+                      final priceVal = double.tryParse(priceController.text.trim()) ?? 0.0;
                       final newProd = Product(
                         id: product?.id,
                         name: nameController.text.trim(),
                         description: descriptionController.text.trim(),
                         hsnCode: hsnController.text.trim(),
                         unit: selectedUnit,
-                        price: double.tryParse(priceController.text.trim()),
+                        price: priceVal,
                         gstRate: selectedGst,
                       );
 
@@ -181,7 +176,7 @@ class ProductsScreen extends StatelessWidget {
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, child) {
-          final products = provider.products;
+          final products = provider.filteredProducts;
 
           return Column(
             children: [

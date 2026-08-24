@@ -565,6 +565,7 @@ class PdfStatementBuilder {
     required Map<String, Map<String, dynamic>> productSalesMap,
     required Map<String, Map<String, dynamic>> customerSalesMap,
     String summaryType = 'Full Comprehensive',
+    bool includeFinancialSummary = true,
   }) async {
     final pdf = pw.Document();
 
@@ -579,6 +580,17 @@ class PdfStatementBuilder {
     final bool showProducts = (summaryType == 'Full Comprehensive' || summaryType == 'Product-Wise Only');
     final bool showCustomers = (summaryType == 'Full Comprehensive' || summaryType == 'Customer-Wise Only');
     final bool showInvoices = (summaryType == 'Full Comprehensive' || summaryType == 'Invoice-Wise Only');
+
+    String reportHeadingTitle;
+    if (summaryType == 'Customer-Wise Only') {
+      reportHeadingTitle = 'CUSTOMER WISE SALES REPORT';
+    } else if (summaryType == 'Product-Wise Only') {
+      reportHeadingTitle = 'PRODUCT WISE SALES REPORT';
+    } else if (summaryType == 'Invoice-Wise Only') {
+      reportHeadingTitle = 'SALES REPORT';
+    } else {
+      reportHeadingTitle = 'SALES REPORT';
+    }
 
     pdf.addPage(
       pw.MultiPage(
@@ -618,7 +630,7 @@ class PdfStatementBuilder {
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                      summaryType == 'Full Comprehensive' ? 'SALES PERFORMANCE REPORT' : 'SALES REPORT ($summaryType)',
+                      reportHeadingTitle,
                       style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800),
                     ),
                     pw.Text(periodTitle, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
@@ -631,35 +643,37 @@ class PdfStatementBuilder {
             pw.Divider(thickness: 1, color: PdfColors.black),
             pw.SizedBox(height: 8),
 
-            // Key Metrics Summary Table
-            pw.Text('REVENUE & FINANCIAL SUMMARY', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 4),
-            pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
-              children: [
-                pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                  children: [
-                    _th('Total Invoices'),
-                    _th('Total Billed Sales'),
-                    _th('Taxable Base'),
-                    _th('Total Tax (GST)'),
-                    _th('Total Received'),
-                    _th('Outstanding Due'),
-                  ],
-                ),
-                pw.TableRow(
-                  children: [
-                    _td('${invoices.length}', align: pw.TextAlign.center, isBold: true),
-                    _td('Rs ${totalSales.toStringAsFixed(2)}', align: pw.TextAlign.right, isBold: true),
-                    _td('Rs ${totalTaxable.toStringAsFixed(2)}', align: pw.TextAlign.right),
-                    _td('Rs ${totalTax.toStringAsFixed(2)}', align: pw.TextAlign.right),
-                    _td('Rs ${totalReceived.toStringAsFixed(2)}', align: pw.TextAlign.right),
-                    _td('Rs ${totalOutstanding.toStringAsFixed(2)}', align: pw.TextAlign.right, isBold: true),
-                  ],
-                ),
-              ],
-            ),
+            // Key Metrics Summary Table (Toggable)
+            if (includeFinancialSummary) ...[
+              pw.Text('REVENUE & FINANCIAL SUMMARY', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 4),
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                    children: [
+                      _th('Total Invoices'),
+                      _th('Total Billed Sales'),
+                      _th('Taxable Base'),
+                      _th('Total Tax (GST)'),
+                      _th('Total Received'),
+                      _th('Outstanding Due'),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      _td('${invoices.length}', align: pw.TextAlign.center, isBold: true),
+                      _td('Rs ${totalSales.toStringAsFixed(2)}', align: pw.TextAlign.right, isBold: true),
+                      _td('Rs ${totalTaxable.toStringAsFixed(2)}', align: pw.TextAlign.right),
+                      _td('Rs ${totalTax.toStringAsFixed(2)}', align: pw.TextAlign.right),
+                      _td('Rs ${totalReceived.toStringAsFixed(2)}', align: pw.TextAlign.right),
+                      _td('Rs ${totalOutstanding.toStringAsFixed(2)}', align: pw.TextAlign.right, isBold: true),
+                    ],
+                  ),
+                ],
+              ),
+            ],
 
             // Product-Wise Sales Breakdown
             if (showProducts && productSalesMap.isNotEmpty) ...[
@@ -737,22 +751,31 @@ class PdfStatementBuilder {
               ),
             ],
 
-            // Invoice Breakdown Schedule
+            // Invoice Breakdown Schedule (Status column omitted for Invoice-Wise Only)
             if (showInvoices) ...[
               pw.SizedBox(height: 14),
               pw.Text('INVOICES SCHEDULE (${invoices.length} Records)', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 4),
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
-                columnWidths: {
-                  0: const pw.FlexColumnWidth(1.1),
-                  1: const pw.FlexColumnWidth(1.1),
-                  2: const pw.FlexColumnWidth(2.2),
-                  3: const pw.FlexColumnWidth(1.1),
-                  4: const pw.FlexColumnWidth(1.2),
-                  5: const pw.FlexColumnWidth(1.1),
-                  6: const pw.FlexColumnWidth(1.3),
-                },
+                columnWidths: summaryType == 'Invoice-Wise Only'
+                    ? {
+                        0: const pw.FlexColumnWidth(1.2),
+                        1: const pw.FlexColumnWidth(1.2),
+                        2: const pw.FlexColumnWidth(2.6),
+                        3: const pw.FlexColumnWidth(1.4),
+                        4: const pw.FlexColumnWidth(1.3),
+                        5: const pw.FlexColumnWidth(1.5),
+                      }
+                    : {
+                        0: const pw.FlexColumnWidth(1.1),
+                        1: const pw.FlexColumnWidth(1.1),
+                        2: const pw.FlexColumnWidth(2.2),
+                        3: const pw.FlexColumnWidth(1.1),
+                        4: const pw.FlexColumnWidth(1.2),
+                        5: const pw.FlexColumnWidth(1.1),
+                        6: const pw.FlexColumnWidth(1.3),
+                      },
                 children: [
                   pw.TableRow(
                     decoration: const pw.BoxDecoration(color: PdfColors.grey200),
@@ -760,7 +783,7 @@ class PdfStatementBuilder {
                       _th('Invoice #'),
                       _th('Date'),
                       _th('Customer'),
-                      _th('Status'),
+                      if (summaryType != 'Invoice-Wise Only') _th('Status'),
                       _th('Taxable (Rs)'),
                       _th('Tax (Rs)'),
                       _th('Total (Rs)'),
@@ -772,7 +795,7 @@ class PdfStatementBuilder {
                         _td(inv.invoiceNumber, isBold: true),
                         _td(inv.date),
                         _td(inv.customerName ?? 'Cash'),
-                        _td(inv.status),
+                        if (summaryType != 'Invoice-Wise Only') _td(inv.status),
                         _td(inv.taxableBase.toStringAsFixed(2), align: pw.TextAlign.right),
                         _td((inv.cgstTotal + inv.sgstTotal + inv.igstTotal).toStringAsFixed(2), align: pw.TextAlign.right),
                         _td(inv.grandTotal.toStringAsFixed(2), align: pw.TextAlign.right, isBold: true),

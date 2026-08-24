@@ -194,6 +194,16 @@ class _MainShellState extends State<MainShell> {
         setState(() {
           _selectedIndex = index;
         });
+
+        // Refresh database state on menu selection
+        if (index == 1) {
+          Provider.of<InvoiceProvider>(context, listen: false).loadInvoices();
+        } else if (index == 2) {
+          Provider.of<ProductProvider>(context, listen: false).loadProducts();
+        } else if (index == 3) {
+          Provider.of<CustomerProvider>(context, listen: false).loadCustomers();
+        }
+
         // Close drawer on mobile
         if (MediaQuery.of(context).size.width < 800 && Navigator.canPop(context)) {
           Navigator.pop(context);

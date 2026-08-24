@@ -220,7 +220,7 @@ class CustomersScreen extends StatelessWidget {
       ),
       body: Consumer<CustomerProvider>(
         builder: (context, provider, child) {
-          final customers = provider.customers;
+          final customers = provider.filteredCustomers;
 
           return Column(
             children: [

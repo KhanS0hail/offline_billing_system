@@ -21,6 +21,16 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   String _statusFilter = 'All'; // 'All', 'Unpaid', 'Partially Paid', 'Paid'
   String _sortOrder = 'Newest First'; // 'Newest First', 'Oldest First', 'Amount: High to Low', 'Amount: Low to High', 'Invoice #: A-Z'
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<InvoiceProvider>(context, listen: false).loadInvoices();
+      }
+    });
+  }
+
   DateTime? _parseInvoiceDate(String dateStr) {
     try {
       final parts = dateStr.split('-');

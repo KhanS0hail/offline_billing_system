@@ -492,7 +492,15 @@ class PdfInvoiceBuilder {
                                       children: [
                                         pw.Text('Bank', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
                                         pw.Text(':', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                                        pw.Text('${company!.bankName}${company!.bankBranch != null && company!.bankBranch!.isNotEmpty ? " (${company!.bankBranch})" : ""}', style: const pw.TextStyle(fontSize: 8)),
+                                        pw.Text(company!.bankName!, style: const pw.TextStyle(fontSize: 8)),
+                                      ],
+                                    ),
+                                  if (company?.bankBranch != null && company!.bankBranch!.isNotEmpty)
+                                    pw.TableRow(
+                                      children: [
+                                        pw.Text('Branch', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                                        pw.Text(':', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                                        pw.Text(company!.bankBranch!, style: const pw.TextStyle(fontSize: 8)),
                                       ],
                                     ),
                                   if (company?.accountNumber != null && company!.accountNumber!.isNotEmpty)
