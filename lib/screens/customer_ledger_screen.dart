@@ -42,7 +42,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   Customer? _selectedCustomer;
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 90));
   DateTime _endDate = DateTime.now();
-  bool _viewAllCompanies = false;
 
   DateTime _parseDate(String dStr) {
     try {
@@ -105,14 +104,9 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             final customerProvider = Provider.of<CustomerProvider>(ctx, listen: false);
             final invoiceProvider = Provider.of<InvoiceProvider>(ctx, listen: false);
 
-            final invoices = invoiceProvider.invoices.where((inv) {
-              final matchesCustomer = (inv.customerId == _selectedCustomer!.id || inv.customerName == _selectedCustomer!.name);
-              if (!_viewAllCompanies && company != null) {
-                final matchesCompany = (inv.companyId == company.id || inv.companyName == company.name);
-                return matchesCustomer && matchesCompany;
-              }
-              return matchesCustomer;
-            }).toList();
+            final invoices = invoiceProvider.invoices
+                .where((inv) => inv.customerId == _selectedCustomer!.id || inv.customerName == _selectedCustomer!.name)
+                .toList();
 
             final payments = await customerProvider.getPaymentsForCustomer(_selectedCustomer!.id!);
 
@@ -398,17 +392,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           final customerPayments = snapshot.data ?? [];
           final currentCompany = Provider.of<CompanyProvider>(context).company;
 
-          // Filter invoices for selected customer (with optional company isolation)
           final customerInvoices = _selectedCustomer == null
               ? <Invoice>[]
-              : invoiceProvider.invoices.where((inv) {
-                  final matchesCustomer = (inv.customerId == _selectedCustomer!.id || inv.customerName == _selectedCustomer!.name);
-                  if (!_viewAllCompanies && currentCompany != null) {
-                    final matchesCompany = (inv.companyId == currentCompany.id || inv.companyName == currentCompany.name);
-                    return matchesCustomer && matchesCompany;
-                  }
-                  return matchesCustomer;
-                }).toList();
+              : invoiceProvider.invoices
+                  .where((inv) => inv.customerId == _selectedCustomer!.id || inv.customerName == _selectedCustomer!.name)
+                  .toList();
 
           // Build unified 6-column display list
           List<_LedgerDisplayRow> displayRows = [];
@@ -488,15 +476,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           ),
                         ),
                          const SizedBox(height: 12),
-                        SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment(value: false, label: Text('Active Company Only'), icon: Icon(Icons.business_rounded)),
-                            ButtonSegment(value: true, label: Text('All Companies (Combined)'), icon: Icon(Icons.domain_rounded)),
-                          ],
-                          selected: {_viewAllCompanies},
-                          onSelectionChanged: (val) => setState(() => _viewAllCompanies = val.first),
-                        ),
-                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [

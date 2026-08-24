@@ -7,6 +7,8 @@ import '../providers/company_provider.dart';
 import '../models/customer.dart';
 import '../models/product.dart';
 import '../models/invoice_item.dart';
+import '../models/company.dart';
+import '../models/invoice.dart';
 import '../utils/number_to_words.dart';
 import '../database/database_helper.dart';
 import 'pdf_preview_screen.dart';
