@@ -24,6 +24,7 @@ class ProductsScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              scrollable: true,
               title: Text(isEditing ? 'Edit Product' : 'Add New Product'),
               content: SingleChildScrollView(
                 child: Form(

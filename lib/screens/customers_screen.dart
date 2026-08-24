@@ -25,6 +25,7 @@ class CustomersScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              scrollable: true,
               title: Text(isEditing ? 'Edit Customer' : 'Add New Customer'),
               content: SingleChildScrollView(
                 child: Form(

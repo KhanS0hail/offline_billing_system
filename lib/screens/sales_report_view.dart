@@ -475,8 +475,11 @@ class _SalesReportViewState extends State<SalesReportView> {
           const SizedBox(height: 20),
 
           // 3. EXPORT BUTTON & SECTION TITLE
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               Text(
                 'Sales Performance (${_selectedSummaryType})',

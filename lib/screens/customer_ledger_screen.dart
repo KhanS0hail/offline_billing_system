@@ -158,6 +158,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             final formattedDateStr = "${selectedDate.day.toString().padLeft(2, '0')}-${_monthName(selectedDate.month)}-${selectedDate.year}";
 
             return AlertDialog(
+              scrollable: true,
               title: Text('Record Payment: ${_selectedCustomer!.name}'),
               content: SingleChildScrollView(
                 child: Column(
@@ -323,9 +324,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
             return AlertDialog(
               title: const Text('Search & Select Customer'),
-              content: SizedBox(
-                width: 450,
-                height: 400,
+              content: Container(
+                constraints: BoxConstraints(
+                  maxWidth: 450,
+                  maxHeight: MediaQuery.of(context).size.height * 0.65,
+                ),
                 child: Column(
                   children: [
                     TextField(
@@ -501,8 +504,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           },
                         ),
                         const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAlignment: WrapCrossAlignment.center,
                           children: [
                             OutlinedButton.icon(
                               onPressed: () => _selectDateRange(context),
@@ -564,8 +570,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAlignment: WrapCrossAlignment.center,
                             children: [
                               const Text(
                                 'Payment Records Across All Customers',
@@ -695,8 +704,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAlignment: WrapCrossAlignment.center,
                             children: [
                               Text(
                                 'Statement Ledger for ${_selectedCustomer!.name}',

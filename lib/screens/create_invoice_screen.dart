@@ -81,6 +81,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              scrollable: true,
               title: const Text('Add New Customer'),
               content: SingleChildScrollView(
                 child: Form(
@@ -219,6 +220,7 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              scrollable: true,
               title: const Text('Add New Product / Item'),
               content: SingleChildScrollView(
                 child: Form(
@@ -341,9 +343,11 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                   ),
                 ],
               ),
-              content: SizedBox(
-                width: double.maxFinite,
-                height: 400,
+              content: Container(
+                constraints: BoxConstraints(
+                  maxWidth: double.maxFinite,
+                  maxHeight: MediaQuery.of(context).size.height * 0.65,
+                ),
                 child: Column(
                   children: [
                     TextField(
@@ -1255,51 +1259,101 @@ class _CreateInvoiceScreenState extends State<CreateInvoiceScreen> {
                 const SizedBox(height: 24),
 
                 // 6. ACTION BUTTONS: SAVE & SAVE & PREVIEW PDF
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final savedInvoice = await _saveInvoiceHelper(context, invProvider, company);
-                            if (savedInvoice != null && mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
-                              );
-                              Navigator.pop(context);
-                            }
-                          },
-                          icon: const Icon(Icons.save_rounded),
-                          label: const Text('Save', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 450) {
+                      return Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final savedInvoice = await _saveInvoiceHelper(context, invProvider, company);
+                                if (savedInvoice != null && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
+                                  );
+                                  Navigator.pop(context);
+                                }
+                              },
+                              icon: const Icon(Icons.save_rounded),
+                              label: const Text('Save', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final savedInvoice = await _saveInvoiceHelper(context, invProvider, company);
+                                if (savedInvoice != null && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
+                                  );
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PdfPreviewScreen(invoice: savedInvoice),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.picture_as_pdf_rounded),
+                              label: const Text('Save & Preview PDF', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 50,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final savedInvoice = await _saveInvoiceHelper(context, invProvider, company);
+                                if (savedInvoice != null && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
+                                  );
+                                  Navigator.pop(context);
+                                }
+                              },
+                              icon: const Icon(Icons.save_rounded),
+                              label: const Text('Save', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            final savedInvoice = await _saveInvoiceHelper(context, invProvider, company);
-                            if (savedInvoice != null && mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
-                              );
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PdfPreviewScreen(invoice: savedInvoice),
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.picture_as_pdf_rounded),
-                          label: const Text('Save & Preview PDF', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final savedInvoice = await _saveInvoiceHelper(context, invProvider, company);
+                                if (savedInvoice != null && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Invoice saved successfully!'), backgroundColor: Colors.green),
+                                  );
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PdfPreviewScreen(invoice: savedInvoice),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.picture_as_pdf_rounded),
+                              label: const Text('Save & Preview PDF', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 40),
               ],
