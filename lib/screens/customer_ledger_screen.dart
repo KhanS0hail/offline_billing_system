@@ -267,10 +267,13 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       return;
                     }
 
+                    final companyProvider = Provider.of<CompanyProvider>(context, listen: false);
+
                     final newPayment = CustomerPayment(
                       receiptNumber: receiptController.text.trim().isEmpty ? nextReceiptNo : receiptController.text.trim(),
                       customerId: _selectedCustomer!.id!,
                       customerName: _selectedCustomer!.name,
+                      companyName: companyProvider.company?.name ?? 'Main Company',
                       paymentDate: formattedDateStr,
                       amount: amt,
                       paymentMode: selectedMode,
@@ -386,9 +389,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         ],
       ),
       body: FutureBuilder<List<CustomerPayment>>(
-        future: _selectedCustomer != null
-            ? customerProvider.getPaymentsForCustomer(_selectedCustomer!.id!)
-            : Future.value([]),
+        future: _viewAllCompanies
+            ? customerProvider.getAllPayments()
+            : (_selectedCustomer != null
+                ? customerProvider.getPaymentsForCustomer(_selectedCustomer!.id!)
+                : Future.value([])),
         builder: (context, snapshot) {
           final customerPayments = snapshot.data ?? [];
           final currentCompany = Provider.of<CompanyProvider>(context).company;
@@ -481,13 +486,13 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           segments: const [
                             ButtonSegment(
                               value: false,
-                              label: Text('Active Company Only', style: TextStyle(fontSize: 12)),
-                              icon: Icon(Icons.business, size: 16),
+                              label: Text('Selected Customer Only', style: TextStyle(fontSize: 12)),
+                              icon: Icon(Icons.person, size: 16),
                             ),
                             ButtonSegment(
                               value: true,
-                              label: Text('All Companies (Combined)', style: TextStyle(fontSize: 12)),
-                              icon: Icon(Icons.domain, size: 16),
+                              label: Text('All Customers (Combined)', style: TextStyle(fontSize: 12)),
+                              icon: Icon(Icons.people_alt, size: 16),
                             ),
                           ],
                           selected: {_viewAllCompanies},
@@ -521,8 +526,130 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
                 const SizedBox(height: 16),
 
-                // 2. LEDGER METRICS SUMMARY CARDS
-                if (_selectedCustomer != null) ...[
+                // 2. ALL CUSTOMERS COMBINED PAYMENT RECORDS TABLE
+                if (_viewAllCompanies) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricTile(
+                          'Ledger Mode',
+                          'All Customers (Combined)',
+                          Colors.blue.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildMetricTile(
+                          'Total Payment Records',
+                          '${customerPayments.length} Receipts',
+                          Colors.purple.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildMetricTile(
+                          'Total Amount Received',
+                          '₹${customerPayments.fold(0.0, (sum, p) => sum + p.amount).toStringAsFixed(2)}',
+                          Colors.green.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  Card(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Payment Records Across All Customers',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () => _openPdfPreview(context),
+                                icon: const Icon(Icons.picture_as_pdf_rounded),
+                                label: const Text('PDF Preview & Print'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          if (customerPayments.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 32.0),
+                              child: Center(
+                                child: Text('No payment records found across any customer.', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+                              ),
+                            )
+                          else
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: DataTable(
+                                columnSpacing: 24,
+                                columns: const [
+                                  DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('Customer / Company Name', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue))),
+                                  DataColumn(label: Text('Receipt / Ref #', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('Payment Mode & Details', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('Amount Received ₹', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+                                ],
+                                rows: customerPayments.map((p) {
+                                  String detailStr = "Payment Received";
+                                  if (p.paymentMode != null && p.paymentMode!.isNotEmpty) {
+                                    detailStr += " via ${p.paymentMode}";
+                                  }
+                                  if (p.referenceNote != null && p.referenceNote!.isNotEmpty) {
+                                    detailStr += " (Ref: ${p.referenceNote})";
+                                  }
+                                  final custCompName = (p.customerName != null && p.customerName!.isNotEmpty)
+                                      ? p.customerName!
+                                      : 'Unknown Customer';
+
+                                  return DataRow(cells: [
+                                    DataCell(Text(p.paymentDate)),
+                                    DataCell(
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.shade50,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: Colors.blue.shade200),
+                                        ),
+                                        child: Text(custCompName, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade900, fontSize: 13)),
+                                      ),
+                                    ),
+                                    DataCell(Text(p.receiptNumber.isNotEmpty ? p.receiptNumber : '-')),
+                                    DataCell(Text(detailStr)),
+                                    DataCell(Text('₹${p.amount.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700))),
+                                    DataCell(
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                        tooltip: 'Delete Payment Receipt',
+                                        onPressed: () async {
+                                          if (p.id != null) {
+                                            await customerProvider.deletePayment(p.id!, p.customerId);
+                                            await invoiceProvider.loadInvoices();
+                                            setState(() {});
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ]);
+                                }).toList(),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else if (_selectedCustomer != null) ...[
                   Row(
                     children: [
                       Expanded(

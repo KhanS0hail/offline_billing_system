@@ -3,6 +3,7 @@ class CustomerPayment {
   final String receiptNumber;
   final int customerId;
   final String? customerName;
+  final String? companyName;
   final String paymentDate;
   final double amount;
   final String? paymentMode;
@@ -14,6 +15,7 @@ class CustomerPayment {
     required this.receiptNumber,
     required this.customerId,
     this.customerName,
+    this.companyName,
     required this.paymentDate,
     required this.amount,
     this.paymentMode,
@@ -27,6 +29,7 @@ class CustomerPayment {
       'receipt_number': receiptNumber,
       'customer_id': customerId,
       'customer_name': customerName,
+      'company_name': companyName,
       'payment_date': paymentDate,
       'amount': amount,
       'payment_mode': paymentMode,
@@ -41,6 +44,7 @@ class CustomerPayment {
       receiptNumber: map['receipt_number'] as String? ?? '',
       customerId: map['customer_id'] as int? ?? 0,
       customerName: map['customer_name'] as String?,
+      companyName: map['company_name'] as String?,
       paymentDate: map['payment_date'] as String? ?? '',
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
       paymentMode: map['payment_mode'] as String?,

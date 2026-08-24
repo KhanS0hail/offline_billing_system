@@ -68,6 +68,10 @@ class CustomerProvider extends ChangeNotifier {
     return await DatabaseHelper.instance.getPaymentsForCustomer(customerId);
   }
 
+  Future<List<CustomerPayment>> getAllPayments() async {
+    return await DatabaseHelper.instance.getAllPayments();
+  }
+
   Future<void> addPayment(CustomerPayment payment) async {
     await DatabaseHelper.instance.insertCustomerPayment(payment);
     notifyListeners();

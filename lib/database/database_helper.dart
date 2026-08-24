@@ -169,6 +169,7 @@ class DatabaseHelper {
         receipt_number $textNull,
         customer_id $intNull,
         customer_name $textNull,
+        company_name $textNull,
         payment_date $textNull,
         amount $realNull,
         payment_mode $textNull,
@@ -305,6 +306,7 @@ class DatabaseHelper {
     await _addColumnIfNotExists(db, 'customer_payments', 'receipt_number', 'TEXT');
     await _addColumnIfNotExists(db, 'customer_payments', 'customer_id', 'INTEGER');
     await _addColumnIfNotExists(db, 'customer_payments', 'customer_name', 'TEXT');
+    await _addColumnIfNotExists(db, 'customer_payments', 'company_name', 'TEXT');
     await _addColumnIfNotExists(db, 'customer_payments', 'payment_date', 'TEXT');
     await _addColumnIfNotExists(db, 'customer_payments', 'amount', 'REAL');
     await _addColumnIfNotExists(db, 'customer_payments', 'payment_mode', 'TEXT');
