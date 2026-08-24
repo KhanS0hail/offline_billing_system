@@ -508,7 +508,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           spacing: 8,
                           runSpacing: 8,
                           alignment: WrapAlignment.spaceBetween,
-                          crossAlignment: WrapCrossAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             OutlinedButton.icon(
                               onPressed: () => _selectDateRange(context),
@@ -574,7 +574,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             alignment: WrapAlignment.spaceBetween,
-                            crossAlignment: WrapCrossAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               const Text(
                                 'Payment Records Across All Customers',
@@ -708,7 +708,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             alignment: WrapAlignment.spaceBetween,
-                            crossAlignment: WrapCrossAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Text(
                                 'Statement Ledger for ${_selectedCustomer!.name}',
