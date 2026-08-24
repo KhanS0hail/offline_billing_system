@@ -42,6 +42,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   Customer? _selectedCustomer;
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 90));
   DateTime _endDate = DateTime.now();
+  bool _viewAllCompanies = false;
 
   DateTime _parseDate(String dStr) {
     try {
@@ -475,7 +476,26 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                             ),
                           ),
                         ),
-                         const SizedBox(height: 12),
+                        const SizedBox(height: 12),
+                        SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment(
+                              value: false,
+                              label: Text('Active Company Only', style: TextStyle(fontSize: 12)),
+                              icon: Icon(Icons.business, size: 16),
+                            ),
+                            ButtonSegment(
+                              value: true,
+                              label: Text('All Companies (Combined)', style: TextStyle(fontSize: 12)),
+                              icon: Icon(Icons.domain, size: 16),
+                            ),
+                          ],
+                          selected: {_viewAllCompanies},
+                          onSelectionChanged: (val) {
+                            setState(() => _viewAllCompanies = val.first);
+                          },
+                        ),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [

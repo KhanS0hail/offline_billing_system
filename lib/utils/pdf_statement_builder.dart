@@ -169,21 +169,46 @@ class PdfStatementBuilder {
                       ),
                       pw.SizedBox(height: 6),
                       if (company?.address != null && company!.address!.isNotEmpty)
-                        pw.Text('Address: ${company!.address}', style: const pw.TextStyle(fontSize: 8.5)),
-                      if ((company?.phone != null && company!.phone!.isNotEmpty) ||
-                          (company?.email != null && company!.email!.isNotEmpty))
                         pw.RichText(
                           text: pw.TextSpan(
                             children: [
-                              if (company?.phone != null && company!.phone!.isNotEmpty)
-                                pw.TextSpan(text: 'Phone: ${company!.phone}  ', style: const pw.TextStyle(fontSize: 8.5)),
-                              if (company?.email != null && company!.email!.isNotEmpty)
-                                pw.TextSpan(text: 'Email: ${company!.email}', style: const pw.TextStyle(fontSize: 8.5)),
+                              pw.TextSpan(text: 'Address: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+                              pw.TextSpan(text: company!.address!, style: const pw.TextStyle(fontSize: 8.5)),
                             ],
                           ),
                         ),
-                      if (company?.gstNumber != null && company!.gstNumber!.isNotEmpty)
-                        pw.Text('GSTIN: ${company!.gstNumber}${companyStateStr.isNotEmpty ? " (State: $companyStateStr)" : ""}', style: const pw.TextStyle(fontSize: 8.5)),
+                      if ((company?.phone != null && company!.phone!.isNotEmpty) ||
+                          (company?.email != null && company!.email!.isNotEmpty)) ...[
+                        pw.SizedBox(height: 2),
+                        pw.RichText(
+                          text: pw.TextSpan(
+                            children: [
+                              if (company?.phone != null && company!.phone!.isNotEmpty) ...[
+                                pw.TextSpan(text: 'Phone: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+                                pw.TextSpan(text: '${company!.phone}', style: const pw.TextStyle(fontSize: 8.5)),
+                              ],
+                              if (company?.phone != null && company!.phone!.isNotEmpty &&
+                                  company?.email != null && company!.email!.isNotEmpty)
+                                pw.TextSpan(text: '  |  ', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                              if (company?.email != null && company!.email!.isNotEmpty) ...[
+                                pw.TextSpan(text: 'Email: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+                                pw.TextSpan(text: '${company!.email}', style: const pw.TextStyle(fontSize: 8.5)),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (company?.gstNumber != null && company!.gstNumber!.isNotEmpty) ...[
+                        pw.SizedBox(height: 2),
+                        pw.RichText(
+                          text: pw.TextSpan(
+                            children: [
+                              pw.TextSpan(text: 'GSTIN: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+                              pw.TextSpan(text: '${company!.gstNumber}${companyStateStr.isNotEmpty ? " (State: $companyStateStr)" : ""}', style: const pw.TextStyle(fontSize: 8.5)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
