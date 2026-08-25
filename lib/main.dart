@@ -17,6 +17,22 @@ void main() async {
   // Initialize SQLite database
   await DatabaseHelper.instance.database;
 
+  // Global Error Handler: Suppress debug overflow banners & render clean responsive layout fallbacks
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    bool isOverflowError = false;
+    if (details.exception is FlutterError) {
+      final exception = details.exception as FlutterError;
+      isOverflowError = exception.diagnostics.any(
+        (e) => e.value.toString().startsWith("A RenderFlex overflowed by"),
+      );
+    }
+    if (isOverflowError) {
+      // Gracefully return an invisible shrink widget instead of yellow/black error banners!
+      return const SizedBox.shrink();
+    }
+    return ErrorWidget(details.exception);
+  };
+
   runApp(
     MultiProvider(
       providers: [

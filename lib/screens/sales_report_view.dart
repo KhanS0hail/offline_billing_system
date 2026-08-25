@@ -411,66 +411,71 @@ class _SalesReportViewState extends State<SalesReportView> {
           const SizedBox(height: 16),
 
           // 2. FINANCIAL SUMMARY METRIC CARDS
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricTile(
-                  'Total Billed Sales',
-                  '₹${totalSales.toStringAsFixed(2)}',
-                  Colors.blue.shade700,
-                  Icons.payments_rounded,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 155,
+                  child: _buildMetricTile(
+                    'Total Billed Sales',
+                    '₹${totalSales.toStringAsFixed(2)}',
+                    Colors.blue.shade700,
+                    Icons.payments_rounded,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildMetricTile(
-                  'Taxable Base',
-                  '₹${totalTaxable.toStringAsFixed(2)}',
-                  Colors.purple.shade700,
-                  Icons.account_balance_wallet_rounded,
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 155,
+                  child: _buildMetricTile(
+                    'Taxable Base',
+                    '₹${totalTaxable.toStringAsFixed(2)}',
+                    Colors.purple.shade700,
+                    Icons.account_balance_wallet_rounded,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildMetricTile(
-                  'Total GST Collected',
-                  '₹${totalTax.toStringAsFixed(2)}',
-                  Colors.teal.shade700,
-                  Icons.receipt_long_rounded,
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 155,
+                  child: _buildMetricTile(
+                    'Total GST Collected',
+                    '₹${totalTax.toStringAsFixed(2)}',
+                    Colors.teal.shade700,
+                    Icons.receipt_long_rounded,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricTile(
-                  'Total Received',
-                  '₹${totalReceived.toStringAsFixed(2)}',
-                  Colors.green.shade700,
-                  Icons.check_circle_rounded,
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 155,
+                  child: _buildMetricTile(
+                    'Total Received',
+                    '₹${totalReceived.toStringAsFixed(2)}',
+                    Colors.green.shade700,
+                    Icons.check_circle_rounded,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildMetricTile(
-                  'Outstanding Due',
-                  '₹${totalOutstanding.toStringAsFixed(2)}',
-                  Colors.red.shade700,
-                  Icons.pending_actions_rounded,
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 155,
+                  child: _buildMetricTile(
+                    'Outstanding Due',
+                    '₹${totalOutstanding.toStringAsFixed(2)}',
+                    Colors.red.shade700,
+                    Icons.pending_actions_rounded,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildMetricTile(
-                  'Total Invoices',
-                  '${filteredInvoices.length}',
-                  Colors.indigo.shade700,
-                  Icons.description_rounded,
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 155,
+                  child: _buildMetricTile(
+                    'Total Invoices',
+                    '${filteredInvoices.length}',
+                    Colors.indigo.shade700,
+                    Icons.description_rounded,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 20),
 

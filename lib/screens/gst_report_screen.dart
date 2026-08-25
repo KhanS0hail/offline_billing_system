@@ -198,57 +198,65 @@ class _GstReportScreenState extends State<GstReportScreen> {
 
             const SizedBox(height: 16),
 
-            // 2. GST TAX METRICS SUMMARY GRID
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricTile(
-                    'Total Sales',
-                    '₹${totalSales.toStringAsFixed(2)}',
-                    Colors.blue.shade700,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 145,
+                    child: _buildMetricTile(
+                      'Total Sales',
+                      '₹${totalSales.toStringAsFixed(2)}',
+                      Colors.blue.shade700,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricTile(
-                    'Taxable Base',
-                    '₹${totalTaxable.toStringAsFixed(2)}',
-                    Colors.purple.shade700,
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 145,
+                    child: _buildMetricTile(
+                      'Taxable Base',
+                      '₹${totalTaxable.toStringAsFixed(2)}',
+                      Colors.purple.shade700,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricTile(
-                    'CGST (9%)',
-                    '₹${totalCgst.toStringAsFixed(2)}',
-                    Colors.indigo.shade700,
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 145,
+                    child: _buildMetricTile(
+                      'CGST (9%)',
+                      '₹${totalCgst.toStringAsFixed(2)}',
+                      Colors.indigo.shade700,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricTile(
-                    'SGST (9%)',
-                    '₹${totalSgst.toStringAsFixed(2)}',
-                    Colors.teal.shade700,
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 145,
+                    child: _buildMetricTile(
+                      'SGST (9%)',
+                      '₹${totalSgst.toStringAsFixed(2)}',
+                      Colors.teal.shade700,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricTile(
-                    'IGST (18%)',
-                    '₹${totalIgst.toStringAsFixed(2)}',
-                    Colors.deepOrange.shade700,
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 145,
+                    child: _buildMetricTile(
+                      'IGST (18%)',
+                      '₹${totalIgst.toStringAsFixed(2)}',
+                      Colors.deepOrange.shade700,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricTile(
-                    'Total GST',
-                    '₹${totalGstLiability.toStringAsFixed(2)}',
-                    Colors.green.shade800,
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 145,
+                    child: _buildMetricTile(
+                      'Total GST',
+                      '₹${totalGstLiability.toStringAsFixed(2)}',
+                      Colors.green.shade800,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
             const SizedBox(height: 16),

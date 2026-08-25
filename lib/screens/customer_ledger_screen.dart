@@ -534,32 +534,38 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
                 // 2. ALL CUSTOMERS COMBINED PAYMENT RECORDS TABLE
                 if (_viewAllCompanies) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricTile(
-                          'Ledger Mode',
-                          'All Customers (Combined)',
-                          Colors.blue.shade700,
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 155,
+                          child: _buildMetricTile(
+                            'Ledger Mode',
+                            'All Customers (Combined)',
+                            Colors.blue.shade700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildMetricTile(
-                          'Total Payment Records',
-                          '${customerPayments.length} Receipts',
-                          Colors.purple.shade700,
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 155,
+                          child: _buildMetricTile(
+                            'Total Payment Records',
+                            '${customerPayments.length} Receipts',
+                            Colors.purple.shade700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildMetricTile(
-                          'Total Amount Received',
-                          '₹${customerPayments.fold(0.0, (sum, p) => sum + p.amount).toStringAsFixed(2)}',
-                          Colors.green.shade700,
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 155,
+                          child: _buildMetricTile(
+                            'Total Amount Received',
+                            '₹${customerPayments.fold(0.0, (sum, p) => sum + p.amount).toStringAsFixed(2)}',
+                            Colors.green.shade700,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -659,40 +665,47 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     ),
                   ),
                 ] else if (_selectedCustomer != null) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricTile(
-                          'Opening Balance',
-                          '₹${openingBal.toStringAsFixed(2)}',
-                          Colors.blue.shade700,
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 150,
+                          child: _buildMetricTile(
+                            'Opening Balance',
+                            '₹${openingBal.toStringAsFixed(2)}',
+                            Colors.blue.shade700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildMetricTile(
-                          'Total Billed (Dr)',
-                          '₹${totalBilled.toStringAsFixed(2)}',
-                          Colors.purple.shade700,
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 150,
+                          child: _buildMetricTile(
+                            'Total Billed (Dr)',
+                            '₹${totalBilled.toStringAsFixed(2)}',
+                            Colors.purple.shade700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildMetricTile(
-                          'Total Received (Cr)',
-                          '₹${totalReceived.toStringAsFixed(2)}',
-                          Colors.green.shade700,
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 150,
+                          child: _buildMetricTile(
+                            'Total Received (Cr)',
+                            '₹${totalReceived.toStringAsFixed(2)}',
+                            Colors.green.shade700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildMetricTile(
-                          'Net Outstanding',
-                          '₹${netBalance.toStringAsFixed(2)}',
-                          netBalance > 0 ? Colors.red.shade700 : Colors.teal.shade700,
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 150,
+                          child: _buildMetricTile(
+                            'Net Outstanding',
+                            '₹${netBalance.toStringAsFixed(2)}',
+                            netBalance > 0 ? Colors.red.shade700 : Colors.teal.shade700,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 

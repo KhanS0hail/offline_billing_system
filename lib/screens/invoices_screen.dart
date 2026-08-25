@@ -364,38 +364,44 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
               // 1. OVERVIEW STATS CARD (DYNAMICALLY SYNCED)
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        context,
-                        'Total Sales',
-                        '₹${totalSales.toStringAsFixed(2)}',
-                        Colors.blue.shade700,
-                        Icons.trending_up,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 145,
+                        child: _buildStatCard(
+                          context,
+                          'Total Sales',
+                          '₹${totalSales.toStringAsFixed(2)}',
+                          Colors.blue.shade700,
+                          Icons.trending_up,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildStatCard(
-                        context,
-                        'Received',
-                        '₹${paidAmount.toStringAsFixed(2)}',
-                        Colors.green.shade700,
-                        Icons.check_circle_outline,
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 145,
+                        child: _buildStatCard(
+                          context,
+                          'Received',
+                          '₹${paidAmount.toStringAsFixed(2)}',
+                          Colors.green.shade700,
+                          Icons.check_circle_outline,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildStatCard(
-                        context,
-                        'Outstanding',
-                        '₹${unpaidAmount.toStringAsFixed(2)}',
-                        Colors.red.shade700,
-                        Icons.pending_actions,
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 145,
+                        child: _buildStatCard(
+                          context,
+                          'Outstanding',
+                          '₹${unpaidAmount.toStringAsFixed(2)}',
+                          Colors.red.shade700,
+                          Icons.pending_actions,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
